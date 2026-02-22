@@ -12,8 +12,8 @@ from pathlib import Path
 # 현재 디렉토리를 sys.path에 추가
 sys.path.insert(0, str(Path(__file__).parent))
 
-from experiment_checkpoint import ExperimentResumeManager, ExperimentCheckpoint
-from experiment_monitor import ExperimentProgressTracker, KissatMonitor
+from experiments.experiment_checkpoint import ExperimentResumeManager, ExperimentCheckpoint
+from experiments.experiment_monitor import ExperimentProgressTracker, KissatMonitor
 
 
 class ExperimentManager:
