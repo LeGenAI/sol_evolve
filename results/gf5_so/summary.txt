@@ -1,0 +1,40 @@
+GF(5) standard inner product self-orthogonal embedding (SAT)
+------------------------------------------------------------
+Date: $(date '+%Y-%m-%d %H:%M:%S')
+Start code: random GF(5) [12,6] (saved as results/gf5_so/G_start_seed123.npy)
+Inner product: standard dot product mod 5
+Method: one-hot GF(5) CNF; search t from Gram rank
+Solver: CaDiCaL
+
+Findings:
+- Gram rank(GG^T) mod 5 = 6 ⇒ lower bound t ≥ 6
+- SAT at t = 6 (n' = 18, k = 6); self-orthogonal verified
+- Extended generator: results/gf5_so/G_ext_t6_sd0.npy
+- Added columns S: results/gf5_so/S_t6_sd0.npy
+- Verification: self-orthogonal = True; Hamming min weight = 8
+- Weight distribution (Hamming weight):
+  {0:1, 8:4, 9:48, 10:232, 11:436, 12:1436, 13:2152, 14:3752, 15:3172, 16:2824, 17:1304, 18:264}
+
+Optimality note:
+Minimum columns = rank(GG^T) = 6. A solution exists at t=6, so n' = 18 is shortest
+for this input generator. Self-dual at length 12 is impossible because t=0 < 6.
+
+Numpy snapshots
+- S shape: (6, 6), nonzeros: 26
+- G_ext shape: (6, 18)
+
+Full S matrix (rows x cols):
+[1 2 0 0 0 1]
+[1 4 2 1 0 0]
+[0 0 4 0 4 2]
+[1 3 4 2 1 0]
+[3 4 3 3 2 2]
+[0 4 3 3 4 3]
+
+Full G_ext generator (6 rows, length 18):
+row0: 0 3 2 0 4 1 1 0 1 0 1 4 1 2 0 0 0 1
+row1: 2 4 2 1 3 4 4 4 0 2 1 1 1 4 2 1 0 0
+row2: 1 4 3 1 2 3 0 3 2 4 3 1 0 0 4 0 4 2
+row3: 4 3 1 2 3 1 1 0 0 2 0 2 1 3 4 2 1 0
+row4: 2 0 1 0 0 2 0 3 1 4 0 3 3 4 3 3 2 2
+row5: 2 4 3 4 2 1 0 4 1 3 2 1 0 4 3 3 4 3

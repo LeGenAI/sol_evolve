@@ -1,0 +1,48 @@
+Ternary BCH [13,7,5]_3 shortest self-orthogonal embedding (SAT)
+--------------------------------------------------------------
+Date: $(date '+%Y-%m-%d %H:%M:%S')
+Generator: standard BCH(13,7,5), g(x)=x^6+2x^5+2x^4+2x^2+1 over GF(3)
+Method: one-hot GF(3) CNF, self-orthogonality constraints, search t from Gram-rank (7)
+Solver: CaDiCaL
+
+Findings:
+- Gram rank(GG^T) mod 3 = 7 => lower bound t >= 7 (matches k - Hull)
+- SAT at t=7 (n'=20, k=7). Unsat not checked below bound (theory prohibits).
+- Extended generator saved: results/ternary_bch/G_ext_t7.npy
+- Added columns matrix S saved: results/ternary_bch/S_t7.npy
+- Verification: self-orthogonal True; Hamming min weight = 9
+- Weight distribution (Hamming weight): {0:1, 9:166, 12:972, 15:954, 18:94}
+
+Optimality note:
+By SO.tex theory (minimum columns = rank(GG^T) = k - hull dimension), the 7-column
+embedding is optimal if the binary result extends to GF(3). Since GG^T has full rank 7,
+any SO embedding needs at least 7 columns; our SAT finds feasibility at t=7, so shortest
+length n'=20 is achieved.
+
+Numpy snapshots (for quick view)
+- S shape: (7, 7), nonzeros: 44
+- S first 3 rows:
+  [2 0 0 0 1 1 1]
+  [2 1 2 0 2 0 0]
+  [2 1 0 0 2 1 0]
+- G_ext shape: (7, 20)
+- G_ext row0:
+  [1,0,2,0,2,2,1,0,0,0,0,0,0,2,0,0,0,1,1,1]
+
+Full S matrix (rows x cols):
+[2 0 0 0 1 1 1]
+[2 1 2 0 2 0 0]
+[2 1 0 0 2 1 0]
+[1 1 2 0 1 1 2]
+[0 1 0 1 0 0 1]
+[0 0 2 0 1 1 1]
+[0 1 0 2 0 1 2]
+
+Full G_ext generator (7 rows, length 20):
+row0: [1 0 2 0 2 2 1 0 0 0 0 0 0 2 0 0 0 1 1 1]
+row1: [0 1 0 2 0 2 2 1 0 0 0 0 0 0 2 0 0 2 2 0]
+row2: [0 0 1 0 2 0 2 2 1 0 0 0 0 0 0 2 0 2 1 0]
+row3: [0 0 0 1 0 2 0 2 2 1 0 0 0 0 0 0 2 1 2 0]
+row4: [0 0 0 0 1 0 2 0 2 2 1 0 0 0 0 0 0 0 1 1]
+row5: [0 0 0 0 0 1 0 2 0 2 2 1 0 0 0 0 0 2 2 1]
+row6: [0 0 0 0 0 0 1 0 2 0 2 2 1 0 0 0 0 1 2 2]

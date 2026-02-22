@@ -1,0 +1,38 @@
+GF(4) Hermitian self-orthogonal embedding (SAT)
+------------------------------------------------
+Date: $(date '+%Y-%m-%d %H:%M:%S')
+Start code: random GF(4) [10,5] (saved as results/gf4_hermitian/G_start.npy)
+Inner product: Hermitian ⟨u,v⟩ = Σ u_i v_i^2 over GF(4)
+Method: one-hot GF(4) CNF with add/mul/conj tables; search t from Hermitian Gram rank
+Solver: CaDiCaL
+
+Findings:
+- Hermitian Gram rank(GG^†) = 5 ⇒ lower bound t ≥ 5
+- SAT at t = 5 (n' = 15, k = 5); self-orthogonal verified
+- Extended generator: results/gf4_hermitian/G_ext_t5.npy
+- Added columns S: results/gf4_hermitian/S_t5.npy
+- Verification: Hermitian self-orthogonal = True; Hamming min weight = 6
+- Weight distribution (Hamming weight): {0:1, 6:12, 8:69, 10:372, 12:402, 14:168}
+
+Optimality note:
+By SO.tex logic (minimum columns = rank(GG^†)), any Hermitian SO embedding needs at least
+5 extra columns. A solution exists at t = 5, so n' = 15 is the shortest length for this
+input generator.
+
+Numpy snapshots (for quick view)
+- S shape: (5, 5), nonzeros: 15
+- G_ext shape: (5, 15)
+
+Full S matrix (rows x cols):
+[0 1 1 1 3]
+[1 0 1 0 3]
+[3 2 0 0 3]
+[1 2 0 0 3]
+[2 0 0 0 1]
+
+Full G_ext generator (5 rows, length 15):
+row0: 0 3 2 1 1 3 0 2 0 0 0 1 1 1 3
+row1: 2 3 2 3 2 3 2 0 3 1 1 0 1 0 3
+row2: 2 1 0 3 3 2 1 3 2 1 3 2 0 0 3
+row3: 1 0 0 2 3 0 3 3 1 2 1 2 0 0 3
+row4: 0 3 2 1 0 3 1 3 2 3 2 0 0 0 1

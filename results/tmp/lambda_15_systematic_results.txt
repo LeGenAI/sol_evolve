@@ -1,0 +1,79 @@
+Systematic Search Results: Lambda_15(1^s)
+==================================================
+
+s=1: SAT
+  vertices: 1
+  centers: 1
+  time: 0.017883777618408203
+  verified: True
+
+s=2: INFEASIBLE (packing)
+  vertices: 1364
+  expected: 150.39978771228772
+  max_pack: 88
+
+s=3: INFEASIBLE (packing)
+  vertices: 9327
+  expected: 760.0635822510823
+  max_pack: 382
+
+s=4: INFEASIBLE (packing)
+  vertices: 18842
+  expected: 1357.1146353646354
+  max_pack: 634
+
+s=5: INFEASIBLE (packing)
+  vertices: 25327
+  expected: 1713.854458041958
+  max_pack: 789
+
+s=6: INFEASIBLE (packing)
+  vertices: 28957
+  expected: 1893.4883241758241
+  max_pack: 854
+
+s=7: INFEASIBLE (packing)
+  vertices: 30847
+  expected: 1978.2245879120878
+  max_pack: 901
+
+s=8: INFEASIBLE (packing)
+  vertices: 31807
+  expected: 2017.0872252747254
+  max_pack: 908
+
+s=9: INFEASIBLE (packing)
+  vertices: 32287
+  expected: 2034.5274725274726
+  max_pack: 918
+
+s=10: INFEASIBLE (packing)
+  vertices: 32527
+  expected: 2042.2589285714287
+  max_pack: 927
+
+s=11: INFEASIBLE (packing)
+  vertices: 32647
+  expected: 2045.6339285714287
+  max_pack: 918
+
+s=12: INFEASIBLE (packing)
+  vertices: 32707
+  expected: 2047.080357142857
+  max_pack: 911
+
+s=13: INFEASIBLE (packing)
+  vertices: 32737
+  expected: 2047.6875
+  max_pack: 926
+
+s=14: INFEASIBLE (packing)
+  vertices: 32752
+  expected: 2047.9375
+  max_pack: 932
+
+s=15: INFEASIBLE (packing)
+  vertices: 32767
+  expected: 2048.0
+  max_pack: 924
+

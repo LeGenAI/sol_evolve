@@ -1,0 +1,664 @@
+   302          valid = True
+   303
+   304          # 1. 각 라틴 스퀘어 검증
+   305          for square_id, square in enumerate(squares):
+   306              if not self.validate_latin_square(square, square_id):
+   307                  valid = False
+   308
+   309          # 2. 모든 쌍의 직교성 검증
+   310          for i in range(self.k):
+   311              for j in range(i + 1, self.k):
+   312                  if not self.validate_orthogonality(squares[i], squares[j], i, j):
+   313                      valid = False
+   314
+   315          # 3. 관계 제약 검증 (선택적)
+   316          if relations is not None:
+   317              if self.k < 2:
+   318                  print("  ⚠️  관계 제약 검증을 위해서는 k ≥ 2가 필요합니다.")
+   319                  valid = False
+   320              else:
+   321                  if not self._validate_relation_constraints(squares[0], squares[1], relations):
+   322                      valid = False
+   323
+   324          print(f"\n{'='*70}")
+   325          if valid:
+   326              print(f"✅ MOLS({self.n}, {self.k}) 검증 성공!")
+   327          else:
+   328              print(f"❌ MOLS({self.n}, {self.k}) 검증 실패")
+   329          print(f"{'='*70}\n")
+   330
+   331          return valid
+   332
+   333      def display_squares(self, squares: List[Sequence[Sequence[int]]]):
+   334          """라틴 스퀘어를 화면에 출력."""
+   335          for square_id, square in enumerate(squares):
+   336              print(f"\nLatin Square #{square_id}:")
+   337              print(f"{'-'*40}")
+   338              for row in square:
+   339                  print(' '.join(f"{val:2d}" for val in row))
+   340              print(f"{'-'*40}")
+   341
+   342      def save_squares(self, squares: List[Sequence[Sequence[int]]], filename: str):
+   343          """라틴 스퀘어를 파일로 저장."""
+   344          output_path = Path(filename)
+   345          output_path.parent.mkdir(parents=True, exist_ok=True)
+   346
+   347          if _np is not None:
+   348              arrays = [_np.array(square, dtype=int) for square in squares]
+   349              _np.save(filename, arrays)
+   350              print(f"\n라틴 스퀘어 저장 완료: {filename}")
+   351          else:
+   352              print("\n⚠️  NumPy 미사용 환경입니다. .npy 저장을 건너뜁니다.")
+   353
+   354          # 텍스트 형식으로도 저장
+   355          txt_filename = filename.replace('.npy', '.txt')
+   356          with open(txt_filename, 'w') as f:
+   357              f.write(f"MOLS({self.n}, {self.k})\n")
+   358              f.write(f"{'='*50}\n\n")
+   359
+   360              for square_id, square in enumerate(squares):
+   361                  f.write(f"Latin Square #{square_id}:\n")
+   362                  f.write(f"{'-'*50}\n")
+   363                  for row in square:
+   364                      f.write(' '.join(f'{val:2d}' for val in row) + '\n')
+   365                  f.write(f"{'-'*50}\n\n")
+   366
+   367          print(f"텍스트 파일 저장 완료: {txt_filename}")
+   368
+   369
+   370  if __name__ == "__main__":
+   371      # 테스트: MOLS(4,2) 파싱 및 검증
+   372      print("="*70)
+   373      print("MOLSParser 테스트: MOLS(4,2)")
+   374      print("="*70)
+   375
+   376      from mols_encoder import MOLSEncoder
+   377      from mols_solver import MOLSSolver
+   378
+   379      # 1. 인코딩 및 해결
+   380      encoder = MOLSEncoder(n=4, k=2, use_commander_variables=True, symmetry_breaking=True)
+   381      encoder.encode_all_constraints()
+   382      cnf_file = "/Users/baegjaehyeon/CodeEvolve/mols_search/results/test_mols_4_2.cnf"
+   383      encoder.export_to_dimacs(cnf_file)
+   384
+   385      solver = MOLSSolver(solver_type='cadical', verbose=False)
+   386      result = solver.solve(cnf_file, timeout=300)
+   387
+   388      if result['status'] != 'SAT':
+   389          print(f"\n❌ SAT 해를 찾지 못했습니다: {result['status']}")
+   390          exit(1)
+   391
+   392      # 2. 파싱
+   393      parser = MOLSParser(n=4, k=2, var_map=encoder.var_map)
+   394      squares = parser.parse_model(result['model'])
+   395
+   396      # 3. 출력
+   397      parser.display_squares(squares)
+   398
+   399      # 4. 검증
+   400      if parser.validate_all(squares):
+   401          # 5. 저장
+   402          parser.save_squares(squares, "/Users/baegjaehyeon/CodeEvolve/mols_search/results/mols_4_2_solution.npy")
+[AI] Perfect! Now I have a complete understanding of the MOLS framework. Let me update the todo list and create a script to find 4x4 MOLS with non-symmetric squares:
+[TOOL] Updated todo list to [{'content': 'Explore filesystem to understand available tools and structure', 'status': 'completed'}, {'content': 'Create SAT encoding for 4x4 MOLS problem (2 non-symmetric squares)', 'status': 'in_progress'}, {'content': 'Run SAT solver to find solution', 'status': 'pending'}, {'content': 'Verify the MOLS solution', 'status': 'pending'}, {'content': 'Save results to files', 'status': 'pending'}]
+[AI] Now let me create a script to generate 4x4 MOLS with non-symmetric squares. The key is to NOT use symmetry breaking, so we get non-symmetric solutions:
+
+Tool call pending: write_file {'file_path': '/tmp/mols_4x4_nonsymmetric.py', 'content': '#!/usr/bin/env python3\n"""\nGenerate two non-symmetric 4x4 MOLS using SAT encoding.\n\nThis script:\n1. Creates a SAT encoding for MOLS(4,2) without symmetry breaking\n2. Runs the SAT solver\n3. Parses and verifies the solution\n4. Saves the results\n"""\n\nimport sys\nfrom pathlib import Path\n\n# Add the MOLS search module to path\nsys.path.insert(0, \'/Users/baegjaehyeon/CodeEvolve/mols_search/core\')\n\nfrom mols_encoder import MOLSEncoder\nfrom mols_solver import MOLSSolver\nfrom mols_parser import MOLSParser\n\n\ndef main():\n    print("="*70)\n    print("Finding two non-symmetric 4x4 MOLS using SAT")\n    print("="*70)\n    \n    # Parameters\n    n = 4  # 4x4 Latin squares\n    k = 2  # 2 mutually orthogonal squares\n    \n    # Output directory\n    output_dir = Path("/tmp/mols_results")\n    output_dir.mkdir(parents=True, exist_ok=True)\n    \n    # Step 1: Create SAT encoding WITHOUT symmetry breaking\n    # This allows non-symmetric solutions\n    print("\\n" + "="*70)\n    print("Step 1: Creating SAT encoding")\n    print("="*70)\n    \n    encoder = MOLSEncoder(\n        n=n,\n        k=k,\n        use_commander_variables=True,  # More efficient encoding\n        symmetry_breaking=False,  # NO symmetry breaking -> non-symmetric solutions\n    )\n    \n    # Encode all constraints\n    print("\\nEncoding Latin square constraints...")\n    for square_id in range(k):\n        encoder.encode_latin_square_constraints(square_id)\n    \n    print("\\nEncoding orthogonality constraints...")\n    for i in range(k):\n        for j in range(i + 1, k):\n            encoder.encode_orthogonality_constraint(i, j)\n    \n    # Export to DIMACS CNF format\n    cnf_file = output_dir / "mols_4x4_nonsymmetric.cnf"\n    print(f"\\nExporting CNF to: {cnf_file}")\n    \n    # Export manually\n    with open(cnf_file, \'w\') as f:\n        num_vars = encoder.var_counter - 1\n        num_clauses = len(encoder.clauses)\n        \n        # DIMACS header\n        f.write(f"p cnf {num_vars} {num_clauses}\\n")\n        \n        # Write clauses\n        for clause in encoder.clauses:\n            f.write(\' \'.join(str(lit) for lit in clause) + \' 0\\n\')\n    \n    print(f"  Variables: {num_vars}")\n    print(f"  Clauses: {num_clauses}")\n    print(f"  Statistics:")\n    for key, value in encoder.stats.items():\n        print(f"    {key}: {value}")\n    \n    # Step 2: Run SAT solver\n    print("\\n" + "="*70)\n    print("Step 2: Running SAT solver")\n    print("="*70)\n    \n    solver = MOLSSolver(solver_type=\'cadical\', verbose=True)\n    result = solver.solve(str(cnf_file), timeout=300)\n    \n    if result[\'status\'] != \'SAT\':\n        print(f"\\n❌ Failed to find solution: {result[\'status\']}")\n        return False\n    \n    print(f"\\n✅ Found SAT solution!")\n    \n    # Step 3: Parse and verify solution\n    print("\\n" + "="*70)\n    print("Step 3: Parsing and verifying solution")\n    print("="*70)\n    \n    parser = MOLSParser(n=n, k=k, var_map=encoder.var_map)\n    squares = parser.parse_model(result[\'model\'])\n    \n    # Display the squares\n    parser.display_squares(squares)\n    \n    # Check if squares are symmetric\n    print("\\n" + "="*70)\n    print("Checking symmetry of squares")\n    print("="*70)\n    \n    for square_id, square in enumerate(squares):\n        is_symmetric = True\n        for i in range(n):\n            for j in range(n):\n                if square[i][j] != square[j][i]:\n                    is_symmetric = False\n                    break\n            if not is_symmetric:\n                break\n        \n        if is_symmetric:\n            print(f"Square #{square_id}: SYMMETRIC (transpose equals original)")\n        else:\n            print(f"Square #{square_id}: NON-SYMMETRIC ✓")\n    \n    # Validate the solution\n    valid = parser.validate_all(squares)\n    \n    if not valid:\n        print("\\n❌ Solution validation failed!")\n        return False\n    \n    # Step 4: Save results\n    print("\\n" + "="*70)\n    print("Step 4: Saving results")\n    print("="*70)\n    \n    # Save as text\n    txt_file = output_dir / "mols_4x4_nonsymmetric_solution.txt"\n    with open(txt_file, \'w\') as f:\n        f.write("Two Non-Symmetric 4x4 MOLS\\n")\n        f.write("="*50 + "\\n\\n")\n        \n        for square_id, square in enumerate(squares):\n            f.write(f"Latin Square #{square_id}:\\n")\n            f.write("-"*50 + "\\n")\n            for row in square:\n                f.write(\' \'.join(f\'{val:2d}\' for val in row) + \'\\n\')\n            f.write("-"*50 + "\\n\\n")\n        \n        # Add verification info\n        f.write("\\nVerification:\\n")\n        f.write("-"*50 + "\\n")\n        f.write(f"Valid Latin Squares: Yes\\n")\n        f.write(f"Mutually Orthogonal: Yes\\n")\n        \n        # Check symmetry\n        for square_id, square in enumerate(squares):\n            is_symmetric = all(\n                square[i][j] == square[j][i]\n                for i in range(n)\n                for j in range(n)\n            )\n            f.write(f"Square #{square_id} Symmetric: {\'Yes\' if is_symmetric else \'No\'}\\n")\n    \n    print(f"Saved text file: {txt_file}")\n    \n    # Save as Python array\n    py_file = output_dir / "mols_4x4_nonsymmetric_solution.py"\n    with open(py_file, \'w\') as f:\n        f.write("# Two Non-Symmetric 4x4 MOLS\\n\\n")\n        for square_id, square in enumerate(squares):\n            f.write(f"square_{square_id} = [\\n")\n            for row in square:\n                f.write(f"    {list(row)},\\n")\n            f.write("]\\n\\n")\n    \n    print(f"Saved Python file: {py_file}")\n    \n    # Save CNF and solution info\n    info_file = output_dir / "mols_4x4_info.txt"\n    with open(info_file, \'w\') as f:\n        f.write("MOLS(4,2) SAT Encoding Information\\n")\n        f.write("="*50 + "\\n\\n")\n        f.write(f"Parameters:\\n")\n        f.write(f"  n = {n} (4x4 squares)\\n")\n        f.write(f"  k = {k} (2 mutually orthogonal squares)\\n")\n        f.write(f"  Symmetry breaking: No (allows non-symmetric solutions)\\n\\n")\n        f.write(f"CNF Statistics:\\n")\n        f.write(f"  Variables: {num_vars}\\n")\n        f.write(f"  Clauses: {num_clauses}\\n")\n        for key, value in encoder.stats.items():\n            f.write(f"  {key}: {value}\\n")\n        f.write(f"\\nSolver Statistics:\\n")\n        f.write(f"  Status: {result[\'status\']}\\n")\n        f.write(f"  Time: {result[\'time\']:.2f} seconds\\n")\n        for key, value in result.get(\'stats\', {}).items():\n            f.write(f"  {key}: {value}\\n")\n    \n    print(f"Saved info file: {info_file}")\n    \n    print("\\n" + "="*70)\n    print("✅ SUCCESS! Found and verified two non-symmetric 4x4 MOLS")\n    print("="*70)\n    print(f"\\nResults saved to: {output_dir}")\n    \n    return True\n\n\nif __name__ == "__main__":\n    success = main()\n    sys.exit(0 if success else 1)\n'} (allowed: approve, edit, reject)
+[TOOL] Updated file /tmp/mols_4x4_nonsymmetric.py
+[AI] Now let's run the script:
+[TOOL] Updated todo list to [{'content': 'Explore filesystem to understand available tools and structure', 'status': 'completed'}, {'content': 'Create SAT encoding for 4x4 MOLS problem (2 non-symmetric squares)', 'status': 'completed'}, {'content': 'Run SAT solver to find solution', 'status': 'in_progress'}, {'content': 'Verify the MOLS solution', 'status': 'pending'}, {'content': 'Save results to files', 'status': 'pending'}]
+[AI] 
+
+Tool call pending: run_python {'path': '/tmp/mols_4x4_nonsymmetric.py', 'timeout': 300} (allowed: approve, edit, reject)
+[TOOL] Command: python3 /tmp/mols_4x4_nonsymmetric.py
+Status: OK
+[stdout]
+======================================================================
+Finding two non-symmetric 4x4 MOLS using SAT
+======================================================================
+
+======================================================================
+Step 1: Creating SAT encoding
+======================================================================
+
+변수 생성 중...
+  기본 변수 생성 완료: 128개
+  (k=2 squares × n=4 × n=4 × n=4 symbols)
+
+Encoding Latin square constraints...
+
+라틴 스퀘어 #0 제약 인코딩 중...
+  추가된 절: 336개
+
+라틴 스퀘어 #1 제약 인코딩 중...
+  추가된 절: 336개
+
+Encoding orthogonality constraints...
+
+직교성 제약 인코딩 중: Square #0 ⊥ Square #1
+  추가된 절: 1584개
+
+Exporting CNF to: /tmp/mols_results/mols_4x4_nonsymmetric.cnf
+  Variables: 448
+  Clauses: 2256
+  Statistics:
+    latin_square_clauses: 672
+    orthogonality_clauses: 1584
+    symmetry_breaking_clauses: 0
+    relation_clauses: 0
+    seed_clauses: 0
+
+======================================================================
+Step 2: Running SAT solver
+======================================================================
+MOLSSolver 초기화 완료
+  솔버 타입: cadical
+  솔버 경로: /Users/baegjaehyeon/CodeEvolve/sat_solvers/cadical/build/cadical
+
+======================================================================
+SAT 솔버 실행 중...
+  CNF 파일: /tmp/mols_results/mols_4x4_nonsymmetric.cnf
+  솔버: cadical
+  타임아웃: 300초
+======================================================================
+
+명령: /Users/baegjaehyeon/CodeEvolve/sat_solvers/cadical/build/cadical /tmp/mols_results/mols_4x4_nonsymmetric.cnf
+
+
+======================================================================
+SAT 솔버 완료!
+======================================================================
+  상태: SAT
+  실행 시간: 0.03초
+  모델 크기: 448개 변수
+
+  통계:
+    propagations: 0
+======================================================================
+
+
+✅ Found SAT solution!
+
+======================================================================
+Step 3: Parsing and verifying solution
+======================================================================
+
+SAT 모델 파싱 중...
+  모델 크기: 448개 변수
+  할당된 셀: 32/32
+
+Latin Square #0:
+----------------------------------------
+ 0  1  2  3
+ 1  0  3  2
+ 2  3  0  1
+ 3  2  1  0
+----------------------------------------
+
+Latin Square #1:
+----------------------------------------
+ 0  1  2  3
+ 2  3  0  1
+ 3  2  1  0
+ 1  0  3  2
+----------------------------------------
+
+======================================================================
+Checking symmetry of squares
+======================================================================
+Square #0: SYMMETRIC (transpose equals original)
+Square #1: NON-SYMMETRIC ✓
+
+======================================================================
+MOLS(4, 2) 검증 시작
+======================================================================
+
+라틴 스퀘어 #0 검증 중...
+  ✅ 유효한 라틴 스퀘어
+
+라틴 스퀘어 #1 검증 중...
+  ✅ 유효한 라틴 스퀘어
+
+직교성 검증 중: Square #0 ⊥ Square #1
+  ✅ 직교함 (모든 16개 순서쌍이 고유)
+
+======================================================================
+✅ MOLS(4, 2) 검증 성공!
+======================================================================
+
+
+======================================================================
+Step 4: Saving results
+======================================================================
+Saved text file: /tmp/mols_results/mols_4x4_nonsymmetric_solution.txt
+Saved Python file: /tmp/mols_results/mols_4x4_nonsymmetric_solution.py
+Saved info file: /tmp/mols_results/mols_4x4_info.txt
+
+======================================================================
+✅ SUCCESS! Found and verified two non-symmetric 4x4 MOLS
+======================================================================
+
+Results saved to: /tmp/mols_results
+
+[stderr] (empty)
+[AI] Great! The solver found a solution, but one square is symmetric. Let me modify the script to explicitly forbid symmetric squares:
+[TOOL] Updated todo list to [{'content': 'Explore filesystem to understand available tools and structure', 'status': 'completed'}, {'content': 'Create SAT encoding for 4x4 MOLS problem (2 non-symmetric squares)', 'status': 'completed'}, {'content': 'Run SAT solver to find solution', 'status': 'completed'}, {'content': 'Add constraints to forbid symmetric squares and re-run', 'status': 'in_progress'}, {'content': 'Verify the MOLS solution', 'status': 'pending'}, {'content': 'Save results to files', 'status': 'pending'}]
+[AI] 
+
+Tool call pending: write_file {'file_path': '/tmp/mols_4x4_nonsymmetric_v2.py', 'content': '#!/usr/bin/env python3\n"""\nGenerate two non-symmetric 4x4 MOLS using SAT encoding.\n\nThis script:\n1. Creates a SAT encoding for MOLS(4,2) without symmetry breaking\n2. Adds constraints to forbid symmetric squares\n3. Runs the SAT solver\n4. Parses and verifies the solution\n5. Saves the results\n"""\n\nimport sys\nfrom pathlib import Path\n\n# Add the MOLS search module to path\nsys.path.insert(0, \'/Users/baegjaehyeon/CodeEvolve/mols_search/core\')\n\nfrom mols_encoder import MOLSEncoder\nfrom mols_solver import MOLSSolver\nfrom mols_parser import MOLSParser\n\n\ndef add_non_symmetric_constraints(encoder, square_id):\n    """\n    Add constraints to forbid a square from being symmetric.\n    A square is symmetric if L[i,j] = L[j,i] for all i,j.\n    To forbid this, we require at least one pair (i,j) where L[i,j] != L[j,i].\n    \n    We add a clause: OR over all (i,j) pairs with i<j of (L[i,j] != L[j,i])\n    L[i,j] != L[j,i] means: for all symbols s, NOT(L[i,j]=s AND L[j,i]=s)\n    Which is: for all s, (NOT L[i,j]=s OR NOT L[j,i]=s)\n    \n    To express "at least one asymmetric pair", we create indicator variables.\n    """\n    n = encoder.n\n    print(f"\\nAdding non-symmetric constraints for Square #{square_id}...")\n    \n    # For each pair (i,j) with i < j, create an indicator variable\n    # that is true if L[i,j] != L[j,i]\n    asymmetric_indicators = []\n    \n    for i in range(n):\n        for j in range(i + 1, n):\n            # Create indicator variable for "L[i,j] != L[j,i]"\n            indicator = encoder.var_counter\n            encoder.var_counter += 1\n            asymmetric_indicators.append(indicator)\n            \n            # indicator is true if there exists some symbol s where\n            # L[i,j]=s but L[j,i]!=s (or vice versa)\n            \n            # For each symbol s, if L[i,j]=s AND L[j,i]=s, then indicator must be false\n            # Equivalently: (L[i,j]=s AND L[j,i]=s) -> NOT indicator\n            # Which is: NOT(L[i,j]=s) OR NOT(L[j,i]=s) OR NOT indicator\n            \n            for s in range(n):\n                var_ij_s = encoder.get_variable(square_id, i, j, s)\n                var_ji_s = encoder.get_variable(square_id, j, i, s)\n                \n                # If both cells have the same symbol s, indicator must be false\n                encoder.clauses.append([-var_ij_s, -var_ji_s, -indicator])\n            \n            # If indicator is true, then L[i,j] != L[j,i]\n            # This means: for all s, NOT(L[i,j]=s AND L[j,i]=s)\n            # We already enforced this above.\n            \n            # We also need: if L[i,j] != L[j,i], then indicator CAN be true\n            # This is automatically satisfied by the above constraints.\n            \n            # Actually, we need to ensure indicator is true if they differ\n            # indicator = OR over s of (L[i,j]=s AND L[j,i]!=s)\n            # Let\'s use a different encoding:\n            \n            # Clear the previous clause and use a better encoding\n            encoder.clauses.pop()  # Remove the last clause we added\n            \n            # Better encoding: indicator <-> (L[i,j] != L[j,i])\n            # This is true iff there exists s1, s2 with s1 != s2 such that\n            # L[i,j]=s1 and L[j,i]=s2\n            \n            # We\'ll use: indicator is true if any symbol differs\n            # For each symbol s: if L[i,j]=s and L[j,i]=s, then NOT indicator\n            for s in range(n):\n                var_ij_s = encoder.get_variable(square_id, i, j, s)\n                var_ji_s = encoder.get_variable(square_id, j, i, s)\n                encoder.clauses.append([-var_ij_s, -var_ji_s, -indicator])\n            \n            # If indicator is false, then L[i,j]=L[j,i]\n            # This means: there exists s such that L[i,j]=s AND L[j,i]=s\n            # NOT indicator -> OR over s of (L[i,j]=s AND L[j,i]=s)\n            # Which is: indicator OR OR over s of (L[i,j]=s AND L[j,i]=s)\n            \n            # Create auxiliary variables for each s: aux_s = (L[i,j]=s AND L[j,i]=s)\n            aux_vars = []\n            for s in range(n):\n                aux = encoder.var_counter\n                encoder.var_counter += 1\n                aux_vars.append(aux)\n                \n                var_ij_s = encoder.get_variable(square_id, i, j, s)\n                var_ji_s = encoder.get_variable(square_id, j, i, s)\n                \n                # aux <-> (var_ij_s AND var_ji_s)\n                encoder.clauses.append([-aux, var_ij_s])\n                encoder.clauses.append([-aux, var_ji_s])\n                encoder.clauses.append([aux, -var_ij_s, -var_ji_s])\n            \n            # NOT indicator -> OR of aux_vars\n            # Which is: indicator OR aux_0 OR aux_1 OR ... OR aux_{n-1}\n            encoder.clauses.append([indicator] + aux_vars)\n    \n    # At least one pair must be asymmetric\n    encoder.clauses.append(asymmetric_indicators)\n    \n    print(f"  Added {len(asymmetric_indicators)} asymmetric indicators")\n    print(f"  Total new clauses: ~{len(asymmetric_indicators) * (n + n + 1)} clauses")\n\n\ndef main():\n    print("="*70)\n    print("Finding two non-symmetric 4x4 MOLS using SAT")\n    print("="*70)\n    \n    # Parameters\n    n = 4  # 4x4 Latin squares\n    k = 2  # 2 mutually orthogonal squares\n    \n    # Output directory\n    output_dir = Path("/tmp/mols_results")\n    output_dir.mkdir(parents=True, exist_ok=True)\n    \n    # Step 1: Create SAT encoding WITHOUT symmetry breaking\n    print("\\n" + "="*70)\n    print("Step 1: Creating SAT encoding")\n    print("="*70)\n    \n    encoder = MOLSEncoder(\n        n=n,\n        k=k,\n        use_commander_variables=True,\n        symmetry_breaking=False,  # No standard symmetry breaking\n    )\n    \n    # Encode all constraints\n    print("\\nEncoding Latin square constraints...")\n    for square_id in range(k):\n        encoder.encode_latin_square_constraints(square_id)\n    \n    print("\\nEncoding orthogonality constraints...")\n    for i in range(k):\n        for j in range(i + 1, k):\n            encoder.encode_orthogonality_constraint(i, j)\n    \n    # Add non-symmetric constraints for both squares\n    print("\\nAdding non-symmetric constraints...")\n    for square_id in range(k):\n        add_non_symmetric_constraints(encoder, square_id)\n    \n    # Export to DIMACS CNF format\n    cnf_file = output_dir / "mols_4x4_nonsymmetric_v2.cnf"\n    print(f"\\nExporting CNF to: {cnf_file}")\n    \n    with open(cnf_file, \'w\') as f:\n        num_vars = encoder.var_counter - 1\n        num_clauses = len(encoder.clauses)\n        \n        # DIMACS header\n        f.write(f"p cnf {num_vars} {num_clauses}\\n")\n        \n        # Write clauses\n        for clause in encoder.clauses:\n            f.write(\' \'.join(str(lit) for lit in clause) + \' 0\\n\')\n    \n    print(f"  Variables: {num_vars}")\n    print(f"  Clauses: {num_clauses}")\n    \n    # Step 2: Run SAT solver\n    print("\\n" + "="*70)\n    print("Step 2: Running SAT solver")\n    print("="*70)\n    \n    solver = MOLSSolver(solver_type=\'cadical\', verbose=True)\n    result = solver.solve(str(cnf_file), timeout=300)\n    \n    if result[\'status\'] != \'SAT\':\n        print(f"\\n❌ Failed to find solution: {result[\'status\']}")\n        return False\n    \n    print(f"\\n✅ Found SAT solution!")\n    \n    # Step 3: Parse and verify solution\n    print("\\n" + "="*70)\n    print("Step 3: Parsing and verifying solution")\n    print("="*70)\n    \n    parser = MOLSParser(n=n, k=k, var_map=encoder.var_map)\n    squares = parser.parse_model(result[\'model\'])\n    \n    # Display the squares\n    parser.display_squares(squares)\n    \n    # Check if squares are symmetric\n    print("\\n" + "="*70)\n    print("Checking symmetry of squares")\n    print("="*70)\n    \n    all_non_symmetric = True\n    for square_id, square in enumerate(squares):\n        is_symmetric = True\n        asymmetric_pairs = []\n        for i in range(n):\n            for j in range(i + 1, n):\n                if square[i][j] != square[j][i]:\n                    is_symmetric = False\n                    asymmetric_pairs.append((i, j, square[i][j], square[j][i]))\n        \n        if is_symmetric:\n            print(f"Square #{square_id}: SYMMETRIC ❌")\n            all_non_symmetric = False\n        else:\n            print(f"Square #{square_id}: NON-SYMMETRIC ✓")\n            print(f"  Asymmetric pairs: {asymmetric_pairs[:3]}{\'...\' if len(asymmetric_pairs) > 3 else \'\'}")\n    \n    if not all_non_symmetric:\n        print("\\n⚠️  Warning: Not all squares are non-symmetric!")\n    \n    # Validate the solution\n    valid = parser.validate_all(squares)\n    \n    if not valid:\n        print("\\n❌ Solution validation failed!")\n        return False\n    \n    # Step 4: Save results\n    print("\\n" + "="*70)\n    print("Step 4: Saving results")\n    print("="*70)\n    \n    # Save as text\n    txt_file = output_dir / "mols_4x4_nonsymmetric_solution.txt"\n    with open(txt_file, \'w\') as f:\n        f.write("Two Non-Symmetric 4x4 MOLS\\n")\n        f.write("="*50 + "\\n\\n")\n        \n        for square_id, square in enumerate(squares):\n            f.write(f"Latin Square #{square_id}:\\n")\n            f.write("-"*50 + "\\n")\n            for row in square:\n                f.write(\' \'.join(f\'{val:2d}\' for val in row) + \'\\n\')\n            f.write("-"*50 + "\\n\\n")\n        \n        # Add verification info\n        f.write("\\nVerification:\\n")\n        f.write("-"*50 + "\\n")\n        f.write(f"Valid Latin Squares: Yes\\n")\n        f.write(f"Mutually Orthogonal: Yes\\n")\n        \n        # Check symmetry\n        for square_id, square in enumerate(squares):\n            is_symmetric = all(\n                square[i][j] == square[j][i]\n                for i in range(n)\n                for j in range(n)\n            )\n            f.write(f"Square #{square_id} Symmetric: {\'Yes\' if is_symmetric else \'No\'}\\n")\n    \n    print(f"Saved text file: {txt_file}")\n    \n    # Save as Python array\n    py_file = output_dir / "mols_4x4_nonsymmetric_solution.py"\n    with open(py_file, \'w\') as f:\n        f.write("# Two Non-Symmetric 4x4 MOLS\\n\\n")\n        for square_id, square in enumerate(squares):\n            f.write(f"square_{square_id} = [\\n")\n            for row in square:\n                f.write(f"    {list(row)},\\n")\n            f.write("]\\n\\n")\n    \n    print(f"Saved Python file: {py_file}")\n    \n    # Save CNF and solution info\n    info_file = output_dir / "mols_4x4_info.txt"\n    with open(info_file, \'w\') as f:\n        f.write("MOLS(4,2) SAT Encoding Information\\n")\n        f.write("="*50 + "\\n\\n")\n        f.write(f"Parameters:\\n")\n        f.write(f"  n = {n} (4x4 squares)\\n")\n        f.write(f"  k = {k} (2 mutually orthogonal squares)\\n")\n        f.write(f"  Symmetry breaking: No\\n")\n        f.write(f"  Non-symmetric constraint: Yes (both squares)\\n\\n")\n        f.write(f"CNF Statistics:\\n")\n        f.write(f"  Variables: {num_vars}\\n")\n        f.write(f"  Clauses: {num_clauses}\\n")\n        f.write(f"\\nSolver Statistics:\\n")\n        f.write(f"  Status: {result[\'status\']}\\n")\n        f.write(f"  Time: {result[\'time\']:.2f} seconds\\n")\n        for key, value in result.get(\'stats\', {}).items():\n            f.write(f"  {key}: {value}\\n")\n    \n    print(f"Saved info file: {info_file}")\n    \n    print("\\n" + "="*70)\n    if all_non_symmetric:\n        print("✅ SUCCESS! Found and verified two non-symmetric 4x4 MOLS")\n    else:\n        print("⚠️  Found MOLS but not all squares are non-symmetric")\n    print("="*70)\n    print(f"\\nResults saved to: {output_dir}")\n    \n    return all_non_symmetric\n\n\nif __name__ == "__main__":\n    success = main()\n    sys.exit(0 if success else 1)\n'} (allowed: approve, edit, reject)
+[TOOL] Updated file /tmp/mols_4x4_nonsymmetric_v2.py
+[AI] 
+
+Tool call pending: run_python {'path': '/tmp/mols_4x4_nonsymmetric_v2.py', 'timeout': 300} (allowed: approve, edit, reject)
+[TOOL] Command: python3 /tmp/mols_4x4_nonsymmetric_v2.py
+Status: OK
+[stdout]
+======================================================================
+Finding two non-symmetric 4x4 MOLS using SAT
+======================================================================
+
+======================================================================
+Step 1: Creating SAT encoding
+======================================================================
+
+변수 생성 중...
+  기본 변수 생성 완료: 128개
+  (k=2 squares × n=4 × n=4 × n=4 symbols)
+
+Encoding Latin square constraints...
+
+라틴 스퀘어 #0 제약 인코딩 중...
+  추가된 절: 336개
+
+라틴 스퀘어 #1 제약 인코딩 중...
+  추가된 절: 336개
+
+Encoding orthogonality constraints...
+
+직교성 제약 인코딩 중: Square #0 ⊥ Square #1
+  추가된 절: 1584개
+
+Adding non-symmetric constraints...
+
+Adding non-symmetric constraints for Square #0...
+  Added 6 asymmetric indicators
+  Total new clauses: ~54 clauses
+
+Adding non-symmetric constraints for Square #1...
+  Added 6 asymmetric indicators
+  Total new clauses: ~54 clauses
+
+Exporting CNF to: /tmp/mols_results/mols_4x4_nonsymmetric_v2.cnf
+  Variables: 508
+  Clauses: 2498
+
+======================================================================
+Step 2: Running SAT solver
+======================================================================
+MOLSSolver 초기화 완료
+  솔버 타입: cadical
+  솔버 경로: /Users/baegjaehyeon/CodeEvolve/sat_solvers/cadical/build/cadical
+
+======================================================================
+SAT 솔버 실행 중...
+  CNF 파일: /tmp/mols_results/mols_4x4_nonsymmetric_v2.cnf
+  솔버: cadical
+  타임아웃: 300초
+======================================================================
+
+명령: /Users/baegjaehyeon/CodeEvolve/sat_solvers/cadical/build/cadical /tmp/mols_results/mols_4x4_nonsymmetric_v2.cnf
+
+
+======================================================================
+SAT 솔버 완료!
+======================================================================
+  상태: SAT
+  실행 시간: 0.05초
+  모델 크기: 508개 변수
+
+  통계:
+    conflicts: 36
+    decisions: 55
+    propagations: 2264
+======================================================================
+
+
+✅ Found SAT solution!
+
+======================================================================
+Step 3: Parsing and verifying solution
+======================================================================
+
+SAT 모델 파싱 중...
+  모델 크기: 508개 변수
+  할당된 셀: 32/32
+
+Latin Square #0:
+----------------------------------------
+ 0  1  3  2
+ 3  2  0  1
+ 1  0  2  3
+ 2  3  1  0
+----------------------------------------
+
+Latin Square #1:
+----------------------------------------
+ 3  1  0  2
+ 1  3  2  0
+ 2  0  1  3
+ 0  2  3  1
+----------------------------------------
+
+======================================================================
+Checking symmetry of squares
+======================================================================
+Square #0: NON-SYMMETRIC ✓
+  Asymmetric pairs: [(0, 1, 1, 3), (0, 2, 3, 1), (1, 3, 1, 3)]...
+Square #1: NON-SYMMETRIC ✓
+  Asymmetric pairs: [(0, 2, 0, 2), (0, 3, 2, 0), (1, 2, 2, 0)]...
+
+======================================================================
+MOLS(4, 2) 검증 시작
+======================================================================
+
+라틴 스퀘어 #0 검증 중...
+  ✅ 유효한 라틴 스퀘어
+
+라틴 스퀘어 #1 검증 중...
+  ✅ 유효한 라틴 스퀘어
+
+직교성 검증 중: Square #0 ⊥ Square #1
+  ✅ 직교함 (모든 16개 순서쌍이 고유)
+
+======================================================================
+✅ MOLS(4, 2) 검증 성공!
+======================================================================
+
+
+======================================================================
+Step 4: Saving results
+======================================================================
+Saved text file: /tmp/mols_results/mols_4x4_nonsymmetric_solution.txt
+Saved Python file: /tmp/mols_results/mols_4x4_nonsymmetric_solution.py
+Saved info file: /tmp/mols_results/mols_4x4_info.txt
+
+======================================================================
+✅ SUCCESS! Found and verified two non-symmetric 4x4 MOLS
+======================================================================
+
+Results saved to: /tmp/mols_results
+
+[stderr] (empty)
+[AI] Perfect! Now let's verify the results and display them:
+[TOOL] Updated todo list to [{'content': 'Explore filesystem to understand available tools and structure', 'status': 'completed'}, {'content': 'Create SAT encoding for 4x4 MOLS problem (2 non-symmetric squares)', 'status': 'completed'}, {'content': 'Run SAT solver to find solution', 'status': 'completed'}, {'content': 'Add constraints to forbid symmetric squares and re-run', 'status': 'completed'}, {'content': 'Verify the MOLS solution', 'status': 'in_progress'}, {'content': 'Save results to files', 'status': 'pending'}]
+[AI] 
+[TOOL]      1   Two Non-Symmetric 4x4 MOLS
+     2  ==================================================
+     3
+     4  Latin Square #0:
+     5  --------------------------------------------------
+     6   0  1  3  2
+     7   3  2  0  1
+     8   1  0  2  3
+     9   2  3  1  0
+    10  --------------------------------------------------
+    11
+    12  Latin Square #1:
+    13  --------------------------------------------------
+    14   3  1  0  2
+    15   1  3  2  0
+    16   2  0  1  3
+    17   0  2  3  1
+    18  --------------------------------------------------
+    19
+    20
+    21  Verification:
+    22  --------------------------------------------------
+    23  Valid Latin Squares: Yes
+    24  Mutually Orthogonal: Yes
+    25  Square #0 Symmetric: No
+    26  Square #1 Symmetric: No
+[TOOL]      1   # Two Non-Symmetric 4x4 MOLS
+     2
+     3  square_0 = [
+     4      [0, 1, 3, 2],
+     5      [3, 2, 0, 1],
+     6      [1, 0, 2, 3],
+     7      [2, 3, 1, 0],
+     8  ]
+     9
+    10  square_1 = [
+    11      [3, 1, 0, 2],
+    12      [1, 3, 2, 0],
+    13      [2, 0, 1, 3],
+    14      [0, 2, 3, 1],
+    15  ]
+    16
+[TOOL]      1   MOLS(4,2) SAT Encoding Information
+     2  ==================================================
+     3
+     4  Parameters:
+     5    n = 4 (4x4 squares)
+     6    k = 2 (2 mutually orthogonal squares)
+     7    Symmetry breaking: No
+     8    Non-symmetric constraint: Yes (both squares)
+     9
+    10  CNF Statistics:
+    11    Variables: 508
+    12    Clauses: 2498
+    13
+    14  Solver Statistics:
+    15    Status: SAT
+    16    Time: 0.05 seconds
+    17    conflicts: 36
+    18    decisions: 55
+    19    propagations: 2264
+[AI] Excellent! Now let me create a comprehensive verification script to double-check everything:
+
+Tool call pending: write_file {'file_path': '/tmp/verify_mols.py', 'content': '#!/usr/bin/env python3\n"""\nComprehensive verification of the 4x4 MOLS solution.\n"""\n\n# Two Non-Symmetric 4x4 MOLS\nsquare_0 = [\n    [0, 1, 3, 2],\n    [3, 2, 0, 1],\n    [1, 0, 2, 3],\n    [2, 3, 1, 0],\n]\n\nsquare_1 = [\n    [3, 1, 0, 2],\n    [1, 3, 2, 0],\n    [2, 0, 1, 3],\n    [0, 2, 3, 1],\n]\n\ndef verify_latin_square(square, name):\n    """Verify that a square is a valid Latin square."""\n    n = len(square)\n    print(f"\\nVerifying {name}:")\n    print("="*50)\n    \n    # Display the square\n    for row in square:\n        print("  " + " ".join(f"{val:2d}" for val in row))\n    \n    valid = True\n    \n    # Check each row\n    for i, row in enumerate(square):\n        if set(row) != set(range(n)):\n            print(f"  ❌ Row {i} is invalid: {row}")\n            valid = False\n    \n    # Check each column\n    for j in range(n):\n        col = [square[i][j] for i in range(n)]\n        if set(col) != set(range(n)):\n            print(f"  ❌ Column {j} is invalid: {col}")\n            valid = False\n    \n    if valid:\n        print(f"  ✅ Valid Latin square")\n    \n    return valid\n\ndef verify_orthogonality(square1, square2):\n    """Verify that two Latin squares are mutually orthogonal."""\n    n = len(square1)\n    print(f"\\nVerifying Orthogonality:")\n    print("="*50)\n    \n    # Collect all pairs\n    pairs = []\n    for i in range(n):\n        for j in range(n):\n            pair = (square1[i][j], square2[i][j])\n            pairs.append(pair)\n    \n    # Check if all pairs are unique\n    if len(pairs) != len(set(pairs)):\n        print(f"  ❌ Duplicate pairs found!")\n        print(f"  Total pairs: {len(pairs)}, Unique pairs: {len(set(pairs))}")\n        return False\n    \n    # Check if all possible pairs appear\n    expected_pairs = {(i, j) for i in range(n) for j in range(n)}\n    actual_pairs = set(pairs)\n    \n    if expected_pairs != actual_pairs:\n        print(f"  ❌ Not all pairs appear!")\n        missing = expected_pairs - actual_pairs\n        print(f"  Missing pairs: {missing}")\n        return False\n    \n    print(f"  ✅ Mutually orthogonal (all {n*n} pairs are unique)")\n    \n    # Display the superimposed pairs\n    print(f"\\n  Superimposed pairs:")\n    for i in range(n):\n        row_str = "  "\n        for j in range(n):\n            row_str += f"({square1[i][j]},{square2[i][j]}) "\n        print(row_str)\n    \n    return True\n\ndef verify_non_symmetric(square, name):\n    """Verify that a square is NOT symmetric."""\n    n = len(square)\n    print(f"\\nVerifying {name} is non-symmetric:")\n    print("="*50)\n    \n    asymmetric_pairs = []\n    for i in range(n):\n        for j in range(i + 1, n):\n            if square[i][j] != square[j][i]:\n                asymmetric_pairs.append((i, j, square[i][j], square[j][i]))\n    \n    if len(asymmetric_pairs) == 0:\n        print(f"  ❌ Square is SYMMETRIC (transpose equals original)")\n        return False\n    else:\n        print(f"  ✅ Square is NON-SYMMETRIC")\n        print(f"  Found {len(asymmetric_pairs)} asymmetric pairs:")\n        for i, j, val_ij, val_ji in asymmetric_pairs[:5]:\n            print(f"    ({i},{j}): {val_ij} != {val_ji} (transpose)")\n        if len(asymmetric_pairs) > 5:\n            print(f"    ... and {len(asymmetric_pairs) - 5} more")\n        return True\n\ndef main():\n    print("="*70)\n    print("COMPREHENSIVE VERIFICATION OF 4x4 MOLS")\n    print("="*70)\n    \n    # Verify each square is a valid Latin square\n    valid1 = verify_latin_square(square_0, "Latin Square #0")\n    valid2 = verify_latin_square(square_1, "Latin Square #1")\n    \n    # Verify orthogonality\n    orthogonal = verify_orthogonality(square_0, square_1)\n    \n    # Verify non-symmetry\n    non_sym1 = verify_non_symmetric(square_0, "Latin Square #0")\n    non_sym2 = verify_non_symmetric(square_1, "Latin Square #1")\n    \n    # Final summary\n    print("\\n" + "="*70)\n    print("VERIFICATION SUMMARY")\n    print("="*70)\n    print(f"Latin Square #0 valid: {\'✅ Yes\' if valid1 else \'❌ No\'}")\n    print(f"Latin Square #1 valid: {\'✅ Yes\' if valid2 else \'❌ No\'}")\n    print(f"Mutually Orthogonal: {\'✅ Yes\' if orthogonal else \'❌ No\'}")\n    print(f"Square #0 non-symmetric: {\'✅ Yes\' if non_sym1 else \'❌ No\'}")\n    print(f"Square #1 non-symmetric: {\'✅ Yes\' if non_sym2 else \'❌ No\'}")\n    \n    all_valid = valid1 and valid2 and orthogonal and non_sym1 and non_sym2\n    \n    print("\\n" + "="*70)\n    if all_valid:\n        print("✅ ALL CHECKS PASSED!")\n        print("Successfully found two non-symmetric 4x4 MOLS")\n    else:\n        print("❌ SOME CHECKS FAILED")\n    print("="*70)\n    \n    return all_valid\n\nif __name__ == "__main__":\n    import sys\n    success = main()\n    sys.exit(0 if success else 1)\n'} (allowed: approve, edit, reject)
+[TOOL] Updated file /tmp/verify_mols.py
+[AI] 
+
+Tool call pending: run_python {'path': '/tmp/verify_mols.py'} (allowed: approve, edit, reject)
+[TOOL] Command: python3 /tmp/verify_mols.py
+Status: OK
+[stdout]
+======================================================================
+COMPREHENSIVE VERIFICATION OF 4x4 MOLS
+======================================================================
+
+Verifying Latin Square #0:
+==================================================
+   0  1  3  2
+   3  2  0  1
+   1  0  2  3
+   2  3  1  0
+  ✅ Valid Latin square
+
+Verifying Latin Square #1:
+==================================================
+   3  1  0  2
+   1  3  2  0
+   2  0  1  3
+   0  2  3  1
+  ✅ Valid Latin square
+
+Verifying Orthogonality:
+==================================================
+  ✅ Mutually orthogonal (all 16 pairs are unique)
+
+  Superimposed pairs:
+  (0,3) (1,1) (3,0) (2,2) 
+  (3,1) (2,3) (0,2) (1,0) 
+  (1,2) (0,0) (2,1) (3,3) 
+  (2,0) (3,2) (1,3) (0,1) 
+
+Verifying Latin Square #0 is non-symmetric:
+==================================================
+  ✅ Square is NON-SYMMETRIC
+  Found 4 asymmetric pairs:
+    (0,1): 1 != 3 (transpose)
+    (0,2): 3 != 1 (transpose)
+    (1,3): 1 != 3 (transpose)
+    (2,3): 3 != 1 (transpose)
+
+Verifying Latin Square #1 is non-symmetric:
+==================================================
+  ✅ Square is NON-SYMMETRIC
+  Found 4 asymmetric pairs:
+    (0,2): 0 != 2 (transpose)
+    (0,3): 2 != 0 (transpose)
+    (1,2): 2 != 0 (transpose)
+    (1,3): 0 != 2 (transpose)
+
+======================================================================
+VERIFICATION SUMMARY
+======================================================================
+Latin Square #0 valid: ✅ Yes
+Latin Square #1 valid: ✅ Yes
+Mutually Orthogonal: ✅ Yes
+Square #0 non-symmetric: ✅ Yes
+Square #1 non-symmetric: ✅ Yes
+
+======================================================================
+✅ ALL CHECKS PASSED!
+Successfully found two non-symmetric 4x4 MOLS
+======================================================================
+
+[stderr] (empty)
+[AI] Perfect! Now let's update the todo list and save all results to a permanent location:
+[TOOL] Updated todo list to [{'content': 'Explore filesystem to understand available tools and structure', 'status': 'completed'}, {'content': 'Create SAT encoding for 4x4 MOLS problem (2 non-symmetric squares)', 'status': 'completed'}, {'content': 'Run SAT solver to find solution', 'status': 'completed'}, {'content': 'Add constraints to forbid symmetric squares and re-run', 'status': 'completed'}, {'content': 'Verify the MOLS solution', 'status': 'completed'}, {'content': 'Save results to files', 'status': 'in_progress'}]
+[AI] 
+[TOOL] ["/tmp/mols_results/mols_4x4_info.txt", "/tmp/mols_results/mols_4x4_nonsymmetric.cnf", "/tmp/mols_results/mols_4x4_nonsymmetric_solution.py", "/tmp/mols_results/mols_4x4_nonsymmetric_solution.txt", "/tmp/mols_results/mols_4x4_nonsymmetric_v2.cnf"]
+[AI] Now let me create a comprehensive summary document:
+
+Tool call pending: write_file {'file_path': '/tmp/mols_results/README.md', 'content': '# Two Non-Symmetric 4x4 MOLS - SAT Solution\n\n## Summary\n\nSuccessfully found two **non-symmetric** 4×4 Mutually Orthogonal Latin Squares (MOLS) using SAT encoding and solving.\n\n## The Solution\n\n### Latin Square #0\n```\n 0  1  3  2\n 3  2  0  1\n 1  0  2  3\n 2  3  1  0\n```\n\n### Latin Square #1\n```\n 3  1  0  2\n 1  3  2  0\n 2  0  1  3\n 0  2  3  1\n```\n\n## Verification\n\n### ✅ Latin Square Properties\n- **Square #0**: Valid Latin square (each row and column contains 0,1,2,3 exactly once)\n- **Square #1**: Valid Latin square (each row and column contains 0,1,2,3 exactly once)\n\n### ✅ Mutual Orthogonality\nWhen superimposed, all 16 ordered pairs (i,j) appear exactly once:\n\n```\nSuperimposed pairs:\n(0,3) (1,1) (3,0) (2,2)\n(3,1) (2,3) (0,2) (1,0)\n(1,2) (0,0) (2,1) (3,3)\n(2,0) (3,2) (1,3) (0,1)\n```\n\nAll 16 possible pairs from {0,1,2,3} × {0,1,2,3} appear exactly once. ✓\n\n### ✅ Non-Symmetric Property\n\n**Square #0** is non-symmetric:\n- Asymmetric pairs: (0,1): 1≠3, (0,2): 3≠1, (1,3): 1≠3, (2,3): 3≠1\n- The transpose is NOT equal to the original\n\n**Square #1** is non-symmetric:\n- Asymmetric pairs: (0,2): 0≠2, (0,3): 2≠0, (1,2): 2≠0, (1,3): 0≠2\n- The transpose is NOT equal to the original\n\n## SAT Encoding Details\n\n### Parameters\n- **n = 4**: 4×4 Latin squares\n- **k = 2**: 2 mutually orthogonal squares\n- **Symmetry breaking**: Disabled (to allow non-symmetric solutions)\n- **Non-symmetric constraints**: Added for both squares\n\n### CNF Statistics\n- **Variables**: 508\n- **Clauses**: 2,498\n  - Latin square constraints: 672 clauses\n  - Orthogonality constraints: 1,584 clauses\n  - Non-symmetric constraints: ~242 clauses\n\n### Solver Performance\n- **Solver**: CaDiCaL\n- **Status**: SAT (satisfiable)\n- **Time**: 0.05 seconds\n- **Conflicts**: 36\n- **Decisions**: 55\n- **Propagations**: 2,264\n\n## Encoding Strategy\n\n### 1. Direct Encoding\nEach cell (i,j) in each square has n boolean variables, one for each possible symbol:\n- Variable x[square_id, i, j, s] = TRUE iff cell (i,j) contains symbol s\n\n### 2. Latin Square Constraints\nFor each square:\n- **Cell uniqueness**: Each cell contains exactly one symbol\n- **Row constraint**: Each symbol appears exactly once in each row\n- **Column constraint**: Each symbol appears exactly once in each column\n\n### 3. Orthogonality Constraints\nFor each pair of squares:\n- Each ordered pair (s1, s2) appears exactly once when squares are superimposed\n- Uses commander variables for efficient encoding (O(n³) clauses instead of O(n⁴))\n\n### 4. Non-Symmetric Constraints\nFor each square:\n- At least one pair (i,j) with i<j must satisfy: square[i][j] ≠ square[j][i]\n- Implemented using indicator variables for asymmetric pairs\n\n## Files\n\n- `mols_4x4_nonsymmetric_solution.txt`: Human-readable solution\n- `mols_4x4_nonsymmetric_solution.py`: Python arrays for the solution\n- `mols_4x4_nonsymmetric_v2.cnf`: DIMACS CNF encoding\n- `mols_4x4_info.txt`: Encoding and solver statistics\n- `README.md`: This file\n\n## Usage\n\nThe solution can be imported in Python:\n\n```python\nfrom mols_4x4_nonsymmetric_solution import square_0, square_1\n\n# Use the squares\nprint(square_0)\nprint(square_1)\n```\n\n## References\n\n- **SAT Encoding**: Based on Prestwich & Loughran (2019) "Searching for Orthogonal Latin Squares with SAT Solvers"\n- **Solver**: CaDiCaL SAT solver\n- **Framework**: Custom MOLS SAT encoding framework\n\n## Notes\n\nThis demonstrates that:\n1. SAT solvers can efficiently find MOLS\n2. Additional constraints (non-symmetry) can be easily added\n3. For small n (like n=4), solutions are found in milliseconds\n4. The encoding is compact and efficient (508 variables, 2,498 clauses)\n'} (allowed: approve, edit, reject)
+[TOOL] Updated file /tmp/mols_results/README.md
+[AI] Now let's copy the verification script to the results directory and create a final summary:
+
+Tool call pending: write_file {'file_path': '/tmp/mols_results/verify_solution.py', 'content': '#!/usr/bin/env python3\n"""\nComprehensive verification of the 4x4 MOLS solution.\nRun this script to verify the solution independently.\n"""\n\n# Two Non-Symmetric 4x4 MOLS\nsquare_0 = [\n    [0, 1, 3, 2],\n    [3, 2, 0, 1],\n    [1, 0, 2, 3],\n    [2, 3, 1, 0],\n]\n\nsquare_1 = [\n    [3, 1, 0, 2],\n    [1, 3, 2, 0],\n    [2, 0, 1, 3],\n    [0, 2, 3, 1],\n]\n\ndef verify_latin_square(square, name):\n    """Verify that a square is a valid Latin square."""\n    n = len(square)\n    print(f"\\nVerifying {name}:")\n    print("="*50)\n    \n    # Display the square\n    for row in square:\n        print("  " + " ".join(f"{val:2d}" for val in row))\n    \n    valid = True\n    \n    # Check each row\n    for i, row in enumerate(square):\n        if set(row) != set(range(n)):\n            print(f"  ❌ Row {i} is invalid: {row}")\n            valid = False\n    \n    # Check each column\n    for j in range(n):\n        col = [square[i][j] for i in range(n)]\n        if set(col) != set(range(n)):\n            print(f"  ❌ Column {j} is invalid: {col}")\n            valid = False\n    \n    if valid:\n        print(f"  ✅ Valid Latin square")\n    \n    return valid\n\ndef verify_orthogonality(square1, square2):\n    """Verify that two Latin squares are mutually orthogonal."""\n    n = len(square1)\n    print(f"\\nVerifying Orthogonality:")\n    print("="*50)\n    \n    # Collect all pairs\n    pairs = []\n    for i in range(n):\n        for j in range(n):\n            pair = (square1[i][j], square2[i][j])\n            pairs.append(pair)\n    \n    # Check if all pairs are unique\n    if len(pairs) != len(set(pairs)):\n        print(f"  ❌ Duplicate pairs found!")\n        print(f"  Total pairs: {len(pairs)}, Unique pairs: {len(set(pairs))}")\n        return False\n    \n    # Check if all possible pairs appear\n    expected_pairs = {(i, j) for i in range(n) for j in range(n)}\n    actual_pairs = set(pairs)\n    \n    if expected_pairs != actual_pairs:\n        print(f"  ❌ Not all pairs appear!")\n        missing = expected_pairs - actual_pairs\n        print(f"  Missing pairs: {missing}")\n        return False\n    \n    print(f"  ✅ Mutually orthogonal (all {n*n} pairs are unique)")\n    \n    # Display the superimposed pairs\n    print(f"\\n  Superimposed pairs:")\n    for i in range(n):\n        row_str = "  "\n        for j in range(n):\n            row_str += f"({square1[i][j]},{square2[i][j]}) "\n        print(row_str)\n    \n    return True\n\ndef verify_non_symmetric(square, name):\n    """Verify that a square is NOT symmetric."""\n    n = len(square)\n    print(f"\\nVerifying {name} is non-symmetric:")\n    print("="*50)\n    \n    asymmetric_pairs = []\n    for i in range(n):\n        for j in range(i + 1, n):\n            if square[i][j] != square[j][i]:\n                asymmetric_pairs.append((i, j, square[i][j], square[j][i]))\n    \n    if len(asymmetric_pairs) == 0:\n        print(f"  ❌ Square is SYMMETRIC (transpose equals original)")\n        return False\n    else:\n        print(f"  ✅ Square is NON-SYMMETRIC")\n        print(f"  Found {len(asymmetric_pairs)} asymmetric pairs:")\n        for i, j, val_ij, val_ji in asymmetric_pairs[:5]:\n            print(f"    ({i},{j}): {val_ij} != {val_ji} (transpose)")\n        if len(asymmetric_pairs) > 5:\n            print(f"    ... and {len(asymmetric_pairs) - 5} more")\n        return True\n\ndef main():\n    print("="*70)\n    print("COMPREHENSIVE VERIFICATION OF 4x4 MOLS")\n    print("="*70)\n    \n    # Verify each square is a valid Latin square\n    valid1 = verify_latin_square(square_0, "Latin Square #0")\n    valid2 = verify_latin_square(square_1, "Latin Square #1")\n    \n    # Verify orthogonality\n    orthogonal = verify_orthogonality(square_0, square_1)\n    \n    # Verify non-symmetry\n    non_sym1 = verify_non_symmetric(square_0, "Latin Square #0")\n    non_sym2 = verify_non_symmetric(square_1, "Latin Square #1")\n    \n    # Final summary\n    print("\\n" + "="*70)\n    print("VERIFICATION SUMMARY")\n    print("="*70)\n    print(f"Latin Square #0 valid: {\'✅ Yes\' if valid1 else \'❌ No\'}")\n    print(f"Latin Square #1 valid: {\'✅ Yes\' if valid2 else \'❌ No\'}")\n    print(f"Mutually Orthogonal: {\'✅ Yes\' if orthogonal else \'❌ No\'}")\n    print(f"Square #0 non-symmetric: {\'✅ Yes\' if non_sym1 else \'❌ No\'}")\n    print(f"Square #1 non-symmetric: {\'✅ Yes\' if non_sym2 else \'❌ No\'}")\n    \n    all_valid = valid1 and valid2 and orthogonal and non_sym1 and non_sym2\n    \n    print("\\n" + "="*70)\n    if all_valid:\n        print("✅ ALL CHECKS PASSED!")\n        print("Successfully verified two non-symmetric 4x4 MOLS")\n    else:\n        print("❌ SOME CHECKS FAILED")\n    print("="*70)\n    \n    return all_valid\n\nif __name__ == "__main__":\n    import sys\n    success = main()\n    sys.exit(0 if success else 1)\n'} (allowed: approve, edit, reject)
+[TOOL] Updated file /tmp/mols_results/verify_solution.py
+[AI] 
+[TOOL] Updated todo list to [{'content': 'Explore filesystem to understand available tools and structure', 'status': 'completed'}, {'content': 'Create SAT encoding for 4x4 MOLS problem (2 non-symmetric squares)', 'status': 'completed'}, {'content': 'Run SAT solver to find solution', 'status': 'completed'}, {'content': 'Add constraints to forbid symmetric squares and re-run', 'status': 'completed'}, {'content': 'Verify the MOLS solution', 'status': 'completed'}, {'content': 'Save results to files', 'status': 'completed'}]
+[AI] Perfect! Let me create one final summary document:
+[TOOL] ["/tmp/mols_results/README.md", "/tmp/mols_results/mols_4x4_info.txt", "/tmp/mols_results/mols_4x4_nonsymmetric.cnf", "/tmp/mols_results/mols_4x4_nonsymmetric_solution.py", "/tmp/mols_results/mols_4x4_nonsymmetric_solution.txt", "/tmp/mols_results/mols_4x4_nonsymmetric_v2.cnf", "/tmp/mols_results/verify_solution.py"]
+[AI] Excellent! Now let me create a visual representation of the solution:
+
+Tool call pending: write_file {'file_path': '/tmp/mols_results/SOLUTION_VISUAL.txt', 'content': '================================================================================\n                TWO NON-SYMMETRIC 4×4 MOLS - VISUAL REPRESENTATION\n================================================================================\n\nLATIN SQUARE #0\n┌─────────────────┐\n│  0  1  3  2    │\n│  3  2  0  1    │\n│  1  0  2  3    │\n│  2  3  1  0    │\n└─────────────────┘\n\nProperties:\n  ✓ Each row contains {0,1,2,3} exactly once\n  ✓ Each column contains {0,1,2,3} exactly once\n  ✓ NON-SYMMETRIC (not equal to its transpose)\n\nTranspose of Square #0:\n┌─────────────────┐\n│  0  3  1  2    │\n│  1  2  0  3    │\n│  3  0  2  1    │\n│  2  1  3  0    │\n└─────────────────┘\n  ≠ Original (asymmetric pairs: (0,1), (0,2), (1,3), (2,3))\n\n\nLATIN SQUARE #1\n┌─────────────────┐\n│  3  1  0  2    │\n│  1  3  2  0    │\n│  2  0  1  3    │\n│  0  2  3  1    │\n└─────────────────┘\n\nProperties:\n  ✓ Each row contains {0,1,2,3} exactly once\n  ✓ Each column contains {0,1,2,3} exactly once\n  ✓ NON-SYMMETRIC (not equal to its transpose)\n\nTranspose of Square #1:\n┌─────────────────┐\n│  3  1  2  0    │\n│  1  3  0  2    │\n│  0  2  1  3    │\n│  2  0  3  1    │\n└─────────────────┘\n  ≠ Original (asymmetric pairs: (0,2), (0,3), (1,2), (1,3))\n\n\nORTHOGONALITY CHECK\n================================================================================\n\nSuperimposed Pairs (Square #0, Square #1):\n┌─────────────────────────────────────┐\n│  (0,3)  (1,1)  (3,0)  (2,2)        │\n│  (3,1)  (2,3)  (0,2)  (1,0)        │\n│  (1,2)  (0,0)  (2,1)  (3,3)        │\n│  (2,0)  (3,2)  (1,3)  (0,1)        │\n└─────────────────────────────────────┘\n\nAll 16 ordered pairs from {0,1,2,3} × {0,1,2,3}:\n  ✓ (0,0) appears at position (2,1)\n  ✓ (0,1) appears at position (3,3)\n  ✓ (0,2) appears at position (1,2)\n  ✓ (0,3) appears at position (0,0)\n  ✓ (1,0) appears at position (1,3)\n  ✓ (1,1) appears at position (0,1)\n  ✓ (1,2) appears at position (2,0)\n  ✓ (1,3) appears at position (3,2)\n  ✓ (2,0) appears at position (3,0)\n  ✓ (2,1) appears at position (2,2)\n  ✓ (2,2) appears at position (0,3)\n  ✓ (2,3) appears at position (1,1)\n  ✓ (3,0) appears at position (0,2)\n  ✓ (3,1) appears at position (1,0)\n  ✓ (3,2) appears at position (3,1)\n  ✓ (3,3) appears at position (2,3)\n\nResult: ALL 16 PAIRS ARE UNIQUE → MUTUALLY ORTHOGONAL ✓\n\n\nVERIFICATION SUMMARY\n================================================================================\n\nLatin Square #0:\n  ✓ Valid Latin square (all rows and columns contain 0,1,2,3)\n  ✓ Non-symmetric (4 asymmetric pairs found)\n\nLatin Square #1:\n  ✓ Valid Latin square (all rows and columns contain 0,1,2,3)\n  ✓ Non-symmetric (4 asymmetric pairs found)\n\nMutual Orthogonality:\n  ✓ All 16 ordered pairs appear exactly once\n\nCONCLUSION: Successfully found two non-symmetric 4×4 MOLS!\n\n\nSAT ENCODING STATISTICS\n================================================================================\n\nEncoding Parameters:\n  • Order (n): 4\n  • Number of squares (k): 2\n  • Symmetry breaking: Disabled\n  • Non-symmetric constraints: Enabled for both squares\n\nCNF Formula:\n  • Variables: 508\n  • Clauses: 2,498\n    - Latin square constraints: 672 clauses\n    - Orthogonality constraints: 1,584 clauses\n    - Non-symmetric constraints: ~242 clauses\n\nSolver Performance (CaDiCaL):\n  • Status: SATISFIABLE\n  • Time: 0.05 seconds\n  • Conflicts: 36\n  • Decisions: 55\n  • Propagations: 2,264\n\n================================================================================\n'} (allowed: approve, edit, reject)
+[TOOL] Updated file /tmp/mols_results/SOLUTION_VISUAL.txt
+[AI] Perfect! Now let me create a final summary of all the files:
+[TOOL]      1   # Two Non-Symmetric 4x4 MOLS - SAT Solution
+     2
+     3  ## Summary
+     4
+     5  Successfully found two **non-symmetric** 4×4 Mutually Orthogonal Latin Squares (MOLS) using SAT encoding and solving.
+     6
+     7  ## The Solution
+     8
+     9  ### Latin Square #0
+    10  ```
+    11   0  1  3  2
+    12   3  2  0  1
+    13   1  0  2  3
+    14   2  3  1  0
+    15  ```
+    16
+    17  ### Latin Square #1
+    18  ```
+    19   3  1  0  2
+    20   1  3  2  0
+    21   2  0  1  3
+    22   0  2  3  1
+    23  ```
+    24
+    25  ## Verification
+    26
+    27  ### ✅ Latin Square Properties
+    28  - **Square #0**: Valid Latin square (each row and column contains 0,1,2,3 exactly once)
+    29  - **Square #1**: Valid Latin square (each row and column contains 0,1,2,3 exactly once)
+    30
+    31  ### ✅ Mutual Orthogonality
+    32  When superimposed, all 16 ordered pairs (i,j) appear exactly once:
+    33
+    34  ```
+    35  Superimposed pairs:
+    36  (0,3) (1,1) (3,0) (2,2)
+    37  (3,1) (2,3) (0,2) (1,0)
+    38  (1,2) (0,0) (2,1) (3,3)
+    39  (2,0) (3,2) (1,3) (0,1)
+    40  ```
+    41
+    42  All 16 possible pairs from {0,1,2,3} × {0,1,2,3} appear exactly once. ✓
+    43
+    44  ### ✅ Non-Symmetric Property
+    45
+    46  **Square #0** is non-symmetric:
+    47  - Asymmetric pairs: (0,1): 1≠3, (0,2): 3≠1, (1,3): 1≠3, (2,3): 3≠1
+    48  - The transpose is NOT equal to the original
+    49
+    50  **Square #1** is non-symmetric:
+[AI] Excellent! Let me now list all the files we've created:
+[TOOL] ["/tmp/mols_results/README.md", "/tmp/mols_results/SOLUTION_VISUAL.txt", "/tmp/mols_results/mols_4x4_info.txt", "/tmp/mols_results/mols_4x4_nonsymmetric.cnf", "/tmp/mols_results/mols_4x4_nonsymmetric_solution.py", "/tmp/mols_results/mols_4x4_nonsymmetric_solution.txt", "/tmp/mols_results/mols_4x4_nonsymmetric_v2.cnf", "/tmp/mols_results/verify_solution.py"]
+[AI] Perfect! Let me create one final index file:
+
+Tool call pending: write_file {'file_path': '/tmp/mols_results/INDEX.txt', 'content': '================================================================================\n                    4×4 NON-SYMMETRIC MOLS - FILE INDEX\n================================================================================\n\nOVERVIEW\n--------\nThis directory contains the complete solution for finding two non-symmetric\n4×4 Mutually Orthogonal Latin Squares (MOLS) using SAT encoding and solving.\n\nMAIN FILES\n----------\n\n1. README.md\n   - Comprehensive documentation of the solution\n   - Includes encoding details, verification, and references\n   - Start here for a complete overview\n\n2. SOLUTION_VISUAL.txt\n   - Visual representation of the two Latin squares\n   - Shows the superimposed pairs\n   - Includes verification summary\n   - Best for quick visual inspection\n\n3. mols_4x4_nonsymmetric_solution.txt\n   - Simple text format of the solution\n   - Human-readable\n   - Includes basic verification info\n\n4. mols_4x4_nonsymmetric_solution.py\n   - Python arrays containing the solution\n   - Can be imported: from mols_4x4_nonsymmetric_solution import square_0, square_1\n   - Ready to use in Python code\n\n5. verify_solution.py\n   - Standalone verification script\n   - Run with: python3 verify_solution.py\n   - Performs comprehensive verification:\n     * Latin square properties\n     * Mutual orthogonality\n     * Non-symmetry check\n\nTECHNICAL FILES\n---------------\n\n6. mols_4x4_nonsymmetric_v2.cnf\n   - DIMACS CNF encoding of the problem\n   - 508 variables, 2,498 clauses\n   - Includes non-symmetric constraints\n   - Can be solved with any SAT solver\n\n7. mols_4x4_info.txt\n   - Encoding and solver statistics\n   - CNF details\n   - Solver performance metrics\n\n8. mols_4x4_nonsymmetric.cnf\n   - Initial CNF (without non-symmetric constraints)\n   - Kept for reference\n\nTHE SOLUTION\n------------\n\nLatin Square #0:\n  0  1  3  2\n  3  2  0  1\n  1  0  2  3\n  2  3  1  0\n\nLatin Square #1:\n  3  1  0  2\n  1  3  2  0\n  2  0  1  3\n  0  2  3  1\n\nVERIFICATION\n------------\n✓ Both squares are valid Latin squares\n✓ Both squares are non-symmetric\n✓ Squares are mutually orthogonal (all 16 pairs unique)\n\nQUICK START\n-----------\n\nTo verify the solution:\n  $ python3 verify_solution.py\n\nTo use in Python:\n  from mols_4x4_nonsymmetric_solution import square_0, square_1\n\nTo read the solution:\n  $ cat SOLUTION_VISUAL.txt\n\nTo understand the encoding:\n  $ cat README.md\n\nSTATISTICS\n----------\nEncoding time: < 1 second\nSolving time: 0.05 seconds\nTotal variables: 508\nTotal clauses: 2,498\nSolver: CaDiCaL\n\n================================================================================\nGenerated: 2024\nMethod: SAT encoding with non-symmetric constraints\nFramework: Custom MOLS SAT encoder\n================================================================================\n'} (allowed: approve, edit, reject)
+[TOOL] Updated file /tmp/mols_results/INDEX.txt
+[AI] Perfect! Now let me create a final summary for the user:
+
+## ✅ SUCCESS! Two Non-Symmetric 4×4 MOLS Found and Verified
+
+I have successfully found two **non-symmetric** 4×4 Mutually Orthogonal Latin Squares (MOLS) using SAT encoding and solving. Here's what was accomplished:
+
+### 📊 The Solution
+
+**Latin Square #0:**
+```
+ 0  1  3  2
+ 3  2  0  1
+ 1  0  2  3
+ 2  3  1  0
+```
+
+**Latin Square #1:**
+```
+ 3  1  0  2
+ 1  3  2  0
+ 2  0  1  3
+ 0  2  3  1
+```
+
+### ✅ Verification Results
+
+1. **Latin Square Properties**: Both squares are valid (each row and column contains 0,1,2,3 exactly once)
+2. **Mutual Orthogonality**: All 16 ordered pairs appear exactly once when superimposed
+3. **Non-Symmetric**: Both squares are NOT equal to their transposes
+   - Square #0: 4 asymmetric pairs
+   - Square #1: 4 asymmetric pairs
+
+### 🔧 SAT Encoding Details
+
+- **Variables**: 508
+- **Clauses**: 2,498
+  - Latin square constraints: 672 clauses
+  - Orthogonality constraints: 1,584 clauses
+  - Non-symmetric constraints: ~242 clauses
+- **Solver**: CaDiCaL
+- **Solving Time**: 0.05 seconds
+- **Status**: SATISFIABLE
+
+### 📁 Results Saved
+
+All results are saved in `/tmp/mols_results/`:
+
+1. **README.md** - Comprehensive documentation
+2. **SOLUTION_VISUAL.txt** - Visual representation with verification
+3. **INDEX.txt** - File index and quick reference
+4. **mols_4x4_nonsymmetric_solution.py** - Python arrays
+5. **mols_4x4_nonsymmetric_solution.txt** - Text format
+6. **verify_solution.py** - Standalone verification script
+7. **mols_4x4_nonsymmetric_v2.cnf** - DIMACS CNF encoding
+8. **mols_4x4_info.txt** - Statistics and details
+
+### 🎯 Key Achievement
+
+The encoding successfully added constraints to **forbid symmetric squares**, ensuring both Latin squares are non-symmetric while maintaining mutual orthogonality. This demonstrates the flexibility of SAT encoding for adding custom constraints to combinatorial problems.
