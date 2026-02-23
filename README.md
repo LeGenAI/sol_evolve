@@ -18,6 +18,12 @@
 
 ## 📖 Overview
 
+<div align="center">
+  <img src="assets/graphical_abstract.png" alt="SolEvolve Graphical Abstract" width="800">
+</div>
+
+<br>
+
 **SolEvolve** is a neuro-symbolic algorithmic discovery framework that combines the semantic reasoning capabilities of Large Language Models (LLMs) with the rigorous verification power of SAT solvers. By closing the loop with an autonomous "Reflector" agent, SolEvolve synthesizes novel SAT formulations to solve long-standing problems in discrete mathematics.
 
 ### 🏆 Key Achievements
