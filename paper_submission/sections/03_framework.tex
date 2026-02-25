@@ -1,0 +1,124 @@
+\section{The SolEvolve framework}\label{ch:design}
+
+\begin{figure*}[t!]
+\centering
+\includegraphics[width=\textwidth]{figs/graphical_abstract.png}
+\caption{The SolEvolve iterative discovery process.}
+\label{fig:sol_evolve_workflow}
+\end{figure*}\subsection{Architecture overview}
+The SolEvolve framework automates components of algorithm design that traditionally require human intervention. In the field of LLM-aided optimization, recent works such as SolSearch~\cite{Zhang2025SolSearch} have demonstrated the efficacy of using LLMs to optimize the internal heuristics of SAT solvers (e.g., generating C++ code for variable selection or restart strategies). SolSearch operates as a white-box optimizer for the solver engine itself, aiming to improve general-purpose performance metrics like the PAR-2 score on standard benchmarks.
+
+SolEvolve takes a fundamentally different, complementary approach. It treats the solver as a high-performance black box (or grey box) engine and focuses on optimizing the \textit{problem encoding} and the \textit{search strategy}. This distinction is critical in scientific discovery, where the mathematical formulation of a problem (e.g., finding a coding theory object) often has a far greater impact on tractability than the low-level solver heuristics. SolEvolve orchestrates a closed-loop interaction between a Large Language Model (Generator) and a rigorous mathematical engine (Verifier), mediated by an automated feedback system (Reflector). This architecture allows SolEvolve to discover novel mathematical representations—such as the standard form reduction or Tseitin-based XOR decomposition—that a general-purpose solver optimizer would never find.
+
+The system is composed of four primary agents that interact in a cyclic manner. The Generator acts as the creative engine, translating high-level mathematical problem descriptions into executable Python code, SAT encodings (CNF), or Integer Linear Programming (ILP) formulations. Unlike SolSearch's searcher module, which iterates on C++ patches for solver internals, the SolEvolve Generator operates at a higher level of abstraction. It synthesizes \textit{domain-specific} encodings and algorithms. For instance, it can propose a sequential counter encoding for cardinality constraints after analyzing the trade-offs between clause count and propagation strength—a semantic decision rooted in the problem domain rather than generic solver tuning.
+
+These strategies are then executed by the Evolver, which manages the solver execution (e.g., Kissat, CaDiCaL) and handles population-based meta-heuristics when applicable. It serves as the execution environment where the abstract strategies meet the hard reality of computational complexity. The results are then passed to the Verifier, which provides the ground truth. It rigorously checks the mathematical validity of the solutions found by the Evolver, computing metrics such as minimum distance, rank, and weight distribution. Crucially, the Verifier is not just a binary pass/fail check; it provides rich, structured data (e.g., \textit{The code has minimum distance 6, but the target was 8; the weight enumerator is...}) which fuels the feedback loop.
+
+Finally, the Reflector closes the loop and represents the defining innovation of SolEvolve. While systems like SolSearch rely on quantitative metrics (runtime, solved ratio) to guide an evolutionary search, the Reflector performs \textit{semantic analysis} of the Verifier's output. It interprets failure modes—such as \textit{stagnation at distance 12}—and constructs targeted natural language prompts to guide the Generator. This mimics the role of a human researcher who analyzes a failed experiment and hypothesizes a new approach (e.g., \textit{The solver is getting stuck in local optima; let's try a randomized restart strategy or a different symmetry breaking clause}). This semantic feedback loop enables the system to recover from dead ends and evolve increasingly sophisticated strategies over time.
+
+\paragraph{Reflector's semantic analysis mechanism.} The Reflector's semantic analysis operates through a structured interpretation pipeline rather than simple pattern matching. When receiving Verifier output, the Reflector first parses quantitative signals: stagnation indicators (e.g., fitness plateau over $N$ generations), constraint violations (e.g., $d_{\min} < d_{\text{target}}$), and resource metrics (timeout, memory limits). These signals are then contextualized using domain-specific heuristics encoded in the Reflector's system prompt. The Reflector maintains a finite state machine with three primary modes: \textit{exploration} (encouraging diverse encoding proposals), \textit{exploitation} (refining promising candidates), and \textit{repair} (invoking SAT-based correction for stagnating solutions). Transitions between modes are governed by improvement rates and diversity metrics computed from the Evolver's population.
+
+(A detailed example of this stagnation diagnosis, including the semantic interpretation and the generated intervention prompt, is provided in Appendix~\ref{sec:app_stagnation}.)
+
+\paragraph{Technical details: semantic interpretation via token analysis.} The Reflector performs semantic interpretation by processing textual representations of population individuals through a three-stage pipeline. First, \textit{structural feature extraction} converts each generator matrix $G$ into a canonical string representation capturing row weights, column patterns, and block structures. Second, \textit{token-level comparison} identifies common structural motifs across the population by computing token overlap ratios between individual representations. Third, \textit{pattern matching against failure signatures} compares the current population's structural features against a library of known failure modes. This token-based analysis enables the Reflector to provide interpretable, actionable feedback rather than opaque fitness scores.
+
+\paragraph{Quantitative definitions for reproducibility.} To ensure reproducibility, we formally define the metrics governing the Reflector's state transitions. Let $P = \{g_1, \ldots, g_m\}$ denote the population of $m$ candidate generator matrices at generation $t$.
+
+\textit{Improvement Rate.} The improvement rate $\rho_t$ measures fitness progress over a sliding window of $w$ generations:
+\begin{center}
+$\displaystyle \rho_t = \frac{f_{\max}(t) - f_{\max}(t - w)}{w \cdot f_{\max}(t - w)}, $
+\end{center}
+where $f_{\max}(t) = \max_{g \in P} f(g)$ is the best fitness at generation $t$. In our experiments, fitness $f(g) = d_{\min}(g)^2 + \alpha \cdot \text{WeightUniformity}(g)$ with $\alpha = 0.1$.
+
+\textit{Diversity Index.} Population diversity is measured via average pairwise Hamming distance normalized by matrix size:
+\begin{center}
+$\displaystyle D_t = \frac{2}{m(m - 1)} \sum_{i < j} \frac{d_H(g_i, g_j)}{k(n - k)}, $
+\end{center}
+where $d_H(g_i, g_j)$ counts differing entries in the parity portions of matrices $g_i$ and $g_j$.
+
+\textit{State Transition Thresholds.} The Reflector transitions between modes according to:
+\begin{itemize}
+\item \textit{Exploration} $\to$ \textit{Exploitation}: $\rho_t > \tau_\rho$ (improvement detected), where $\tau_\rho = 0.01$
+\item \textit{Exploitation} $\to$ \textit{Repair}: $\rho_t < \tau_\rho$ for $N_{\text{stag}} = 50$ consecutive generations
+\item \textit{Repair} $\to$ \textit{Exploration}: $D_t < \tau_D$ (diversity collapse), where $\tau_D = 0.15$
+\item \textit{Any} $\to$ \textit{Exploration}: After successful repair or timeout ($T_{\max} = 300$s per repair attempt)
+\end{itemize}
+These thresholds were determined through preliminary experiments on $[22,11,7]$ and $[28,14,8]$ instances and remained fixed across all reported experiments.
+
+\paragraph{Distinction from traditional metric-driven feedback.} Unlike conventional evolutionary algorithm feedback mechanisms that rely solely on scalar fitness values or runtime statistics~\cite{Meyerson2024LLM_EA_Match}, the Reflector's semantic analysis provides three key advantages: (1) \textit{Causal hypothesis generation}; (2) \textit{Natural language interface}; (3) \textit{Multi-signal fusion}. This semantic layer distinguishes SolEvolve from reinforcement learning approaches to algorithm configuration~\cite{Sharma2019}.
+
+\paragraph{Generator's trade-off analysis process.} The Generator's encoding decisions are guided by explicit trade-off reasoning embedded in its prompting structure. When proposing an encoding strategy, the Generator is instructed to output a structured rationale that weighs: (1) \textit{compactness}, (2) \textit{propagation strength}, and (3) \textit{symmetry exploitation}. For cardinality constraints, this analysis manifests as a comparison between naive binomial encoding ($O(n^k)$ clauses), sequential counters ($O(nk)$ clauses, weaker propagation), and Commander variables ($O(n\sqrt{n})$ clauses, balanced trade-off).
+
+(A complete template of this prompt, demonstrating the structured format required for the Generator's trade-off analysis, is provided in Appendix~\ref{sec:app_generator}.)
+
+\noindent This template enforces structured reasoning, enabling systematic comparison across encoding strategies.
+
+\subsection{System data flow}
+Figure~\ref{fig:sol_evolve_workflow} illustrates the iterative discovery process orchestrated by the framework. The cycle begins with the Generator defining targets and planning experiments, followed by encoding these into SAT instances. The Evolver then solves these instances, and the Verifier rigorously checks the results. Crucially, feedback loops enable self-correction: the Reflector interprets failures to guide the Generator in refining encodings, while validated results update the Verifier's internal bounds database.
+
+
+\subsection{LLM-driven encoding strategies}
+A key innovation of SolEvolve is its ability to optimize problem encodings. Rather than treating the SAT solver as a black box, the framework actively discovers more efficient representations, such as standard forms for linear codes or Tseitin transformations for XOR constraints.
+
+\paragraph{Tseitin transformation for xor constraints.} The parity-check constraint $Hc^T = \mathbf{0}$ (mod 2) requires encoding XOR relationships into CNF. A naive encoding of $x_1 \oplus x_2 \oplus \cdots \oplus x_m = 0$ produces $2^{m-1}$ clauses (exponential in the number of variables). The Generator proposed Tseitin's transformation~\cite{Tseitin1983}, which introduces auxiliary variables to decompose large XORs into a chain of 3-variable XORs, each requiring only 4 clauses:
+\begin{align*}
+x_1 \oplus x_2 &= a_1 && \text{(4 clauses: } \bar{x}_1 \lor \bar{x}_2 \lor \bar{a}_1, \text{ etc.)} \\
+a_1 \oplus x_3 &= a_2 && \text{(4 clauses)} \\
+&\vdots \\
+a_{m-2} \oplus x_m &= 0 && \text{(4 clauses)}
+\end{align*}
+This decomposition yields $4(m-1)$ clauses with $m-2$ auxiliary variables---linear in $m$ rather than exponential. For a binary $[32,14,8]$ code with $n-k=18$ parity-check rows, each involving up to $n=32$ variables, this reduces the XOR-related clause count from potentially $2^{31} \cdot 18$ to approximately $4 \cdot 31 \cdot 18 \approx 2{,}232$ clauses. The trade-off is weaker unit propagation (auxiliary variables create indirect dependencies), but the clause-count reduction dominates for $m > 6$.
+
+\subsection{Verification and bounds analysis}
+A critical differentiator of SolEvolve is its research-aware verification module. While traditional automated reasoning tools focus solely on correctness (e.g., \textit{Does this assignment satisfy the formula?}), SolEvolve integrates an agentic subsystem designed to contextualize discoveries within the current state of the art.
+
+Implemented as a ReAct agent using LangGraph, this module acts as a dynamic oracle. When the Evolver discovers a code with parameters $[n,k,d]$, the Verifier does not merely check the minimum distance. It autonomously queries external databases—specifically \texttt{codetables.de}, the standard repository for best known linear codes (BKLC)—to determine the theoretical optimality of the result.
+
+The agent constructs targeted queries (e.g., fetching the specific entry page for $n=32, k=14$) to retrieve the current record. It employs a robust fallback mechanism: if the specific entry page is unavailable or lacks data, it parses the broader parameter table to extract the relevant bounds. This allows SolEvolve to distinguish between valid but trivial solutions and record-breaking discoveries.
+
+\subsection{Hybrid SAT-GA: bridging exact and heuristic methods}\label{sec:hybrid}
+
+A distinctive contribution of SolEvolve lies in its hybrid architecture that bridges SAT-based exact methods with genetic algorithm (GA) heuristics. This integration addresses a fundamental limitation in combinatorial search: SAT solvers excel at finding \textit{valid} solutions but struggle to optimize secondary objectives, while GAs explore diverse regions of the solution space but lack formal guarantees. By combining these complementary strengths, SolEvolve enables a new paradigm for mathematical discovery.
+
+\paragraph{Motivation: diverse solution generation.} Traditional SAT solvers are designed to find \textit{a} satisfying assignment, not to enumerate \textit{diverse} solutions. However, in mathematical discovery, diversity is often as valuable as validity. For error-correcting codes, inequivalent codes with the same parameters $[n,k,d]$ may exhibit different weight distributions, automorphism groups, or algebraic structures---properties that determine suitability for specific applications~\cite{Nadler2011DiverseSAT}. The problem of generating diverse SAT solutions has received growing attention~\cite{Eifler2024DiverseSAT}.
+
+SolEvolve addresses this challenge through a novel four-phase workflow (Figure~\ref{fig:hybrid_workflow}):
+
+\begin{enumerate}
+\item \textbf{Phase 1 (SAT Generation):} The SAT solver generates multiple inequivalent solutions by systematically adding blocking clauses and varying initial variable assignments. For $[n,k,d]$ codes, this produces a diverse seed population with guaranteed validity.
+
+\item \textbf{Phase 2 (GA Seeding):} The SAT-derived solutions seed the GA population, providing high-quality starting points that avoid the ``cold start'' problem typical of random initialization. This warm-start strategy ensures that evolutionary search begins in promising regions of the fitness landscape.
+
+\item \textbf{Phase 3 (Evolutionary Exploration):} The GA evolves the population through domain-specific crossover (e.g., column exchange for generator matrices) and mutation operators. The Reflector monitors for stagnation, detecting when fitness improvements plateau.
+
+\item \textbf{Phase 4 (SAT Repair):} When stagnation is detected, the Reflector triggers the SAT repair module. This module extracts constraint violations from stagnating individuals (e.g., codewords with weight below the target distance) and formulates a targeted CNF query to repair these specific weaknesses.
+\end{enumerate}
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=\textwidth]{figs/Hybrid_approach_SAT_repair.png}
+\caption{Hybrid SAT-GA workflow. Phase 1 generates diverse SAT-derived seeds; Phase 2 initializes the GA population; Phase 3 evolves until stagnation; Phase 4 applies targeted SAT repair to break through combinatorial barriers.}
+\label{fig:hybrid_workflow}
+\end{figure*}
+
+\paragraph{SAT repair as a service.} The SAT repair module represents a key innovation that distinguishes SolEvolve from conventional memetic algorithms~\cite{Moscato1989Memetic}. Traditional memetic approaches apply local search uniformly to all individuals, treating improvement as a generic optimization step. In contrast, SolEvolve's repair module operates as a \textit{targeted intervention service}: it analyzes the specific structure of a stagnating candidate, identifies the minimal set of constraints that must be modified, and invokes the SAT solver to find a repair that preserves valid structure while eliminating constraint violations.
+
+Concretely, for a candidate code with generator matrix $G$ achieving $d_{\min} = d-1$ instead of the target $d$, the repair module: (1) identifies all codewords with weight less than $d$; (2) formulates a CNF that fixes the ``good'' columns of $G$ while allowing the SAT solver to modify columns associated with low-weight codewords; (3) adds explicit constraints forbidding the problematic weight patterns. This targeted approach is computationally more efficient than restarting from scratch and preserves the structural features that made the candidate promising.
+
+\paragraph{Case study: discovery of $[22,11,7]$ code.} We validated the hybrid methodology through a pilot study targeting the optimal binary $[22,11,7]$ code:
+
+(A detailed computational trace of this discovery process, including the evaluation of structural properties upon successful SAT repair, is provided in Appendix~\ref{sec:app_case_study}.)
+
+This result demonstrates that the hybrid approach not only finds valid codes but also optimizes for structural properties that pure SAT or pure GA methods alone cannot achieve.
+
+\paragraph{Application to open problems.} The hybrid SAT-GA methodology has broader implications for attacking open problems in coding theory. For the unsolved $[35,10,13]$ problem, the framework systematically narrows the search space by integrating SAT-derived $[35,10,12]$ seeds with iterative repair cycles. 
+
+Although a theoretical $[35,10,13]$ code remains elusive, this hybrid approach yielded significant intermediate discoveries. The system found 10 mutually inequivalent binary $[35,10,12]$ codes, each matching the optimal Best Known Linear Code (BKLC) distance but exhibiting distinct structural properties and weight distributions. Furthermore, it demonstrated the capability for \textit{$A_d$ optimization} by discovering $[43,10,16]$ codes that reduced the number of minimum-weight codewords ($A_{16}$) by 64\% compared to the BKLC baseline. 
+
+The detailed experimental data for these discoveries---including the inequivalent binary $[35,10,12]$ code weight distributions, the binary $[43,10,16]$ code $A_d$ optimization steps, and the explicit generator matrix for the optimal binary $[32,14,8]$ code---are fully cataloged in Appendix~\ref{sec:app_hybrid_app}.
+
+\paragraph{Distinction from existing adaptive GA techniques.} Traditional adaptive genetic algorithms employ rule-based parameter control~\cite{Eiben1999}. In contrast, SolEvolve's LLM-based meta-optimization operates through \textit{semantic interpretation} of the search trajectory. The LLM analyzes not merely quantitative metrics but also \textit{structural patterns} in the population.
+
+Concretely, the decision logic proceeds as follows: (1) the Reflector summarizes the population state in natural language; (2) the Generator interprets this summary and proposes targeted interventions; (3) the Evolver implements the proposed changes for the next generation. This semantic feedback loop enables interventions that are contextually appropriate.
+
+The detailed analysis and generator matrix for the binary $[22,11,7]$ code discovery are provided in Appendix~\ref{sec:app_case_study}.

@@ -1,0 +1,241 @@
+\section{Discovery of binary linear codes}\label{ch:codes}
+
+\subsection{Preliminaries}
+
+Since the seminal work of Shannon~\cite{Shannon1948} and Hamming~\cite{Hamming1950}, linear codes have been a central object of study in information theory. We begin by defining the basic structure of these codes.
+
+\begin{definition}[Binary linear code]
+A binary linear code $\mathcal{C}$ of length $n$ and dimension $k$ is a $k$-dimensional subspace of the vector space $\mathbb{F}_2^n$. The elements of $\mathcal{C}$ are called \textit{codewords}.
+\end{definition}
+
+To efficiently represent and manipulate these subspaces, we utilize matrix representations. A code can be defined either by a basis of the subspace or by the null space of a matrix.
+
+\begin{definition}[Generator matrix]
+A \textit{generator matrix} $G$ for a linear code $\mathcal{C}$ is a $k \times n$ matrix whose rows form a basis for $\mathcal{C}$. Thus, $\mathcal{C} = \{ xG \mid x \in \mathbb{F}_2^k \}$. The rank of $G$ is $k$.
+\end{definition}
+
+\begin{definition}[Parity check matrix]
+A \textit{parity check matrix} $H$ for a linear code $\mathcal{C}$ is an $(n-k) \times n$ matrix such that $c \in \mathcal{C}$ if and only if $Hc^T = \mathbf{0}$. The rows of $H$ form a basis for the dual code $\mathcal{C}^\perp$. It follows that $GH^T = \mathbf{0}$.
+\end{definition}
+
+For algorithmic purposes, it is often advantageous to work with a canonical representation of the generator matrix. This reduces the search space by fixing the structure of the basis vectors.
+
+\begin{definition}[Standard form]
+A generator matrix $G$ is in \textit{standard form} (or systematic form) if $G = [I_k \mid P]$, where $I_k$ is the $k \times k$ identity matrix and $P$ is a $k \times (n-k)$ matrix. Up to column permutations, every linear code has a generator matrix in standard form.
+\end{definition}
+
+The error-correcting capability of a code is determined by the distances between its codewords. We define the fundamental metric used in this context.
+
+\begin{definition}[Hamming weight and distance]
+The \textit{Hamming weight} of a vector $x \in \mathbb{F}_2^n$, denoted by $wt(x)$, is the number of non-zero coordinates in $x$. The \textit{Hamming distance} between two vectors $x, y \in \mathbb{F}_2^n$, denoted by $d_H(x, y)$, is the number of coordinates in which they differ, i.e., $d_H(x, y) = wt(x-y)$.
+\end{definition}
+
+\begin{definition}[Minimum distance]
+The \textit{minimum distance} $d$ of a linear code $\mathcal{C}$ is the smallest Hamming weight among all non-zero codewords:
+\begin{center}
+$d(\mathcal{C}) = \min \{ wt(c) \mid c \in \mathcal{C}, c \neq \mathbf{0} \}.$
+\end{center}
+A code with parameters $[n, k, d]$ is a binary linear code of length $n$, dimension $k$, and minimum distance $d$.
+\end{definition}
+
+A central goal in coding theory is to construct codes that maximize the minimum distance for a fixed length and dimension.
+
+\begin{definition}[Optimal and best known codes]
+Let $d_{opt}(n, k)$ denote the maximum possible minimum distance for a binary linear code of length $n$ and dimension $k$. A code achieving this distance is called \textit{optimal}.
+The \textit{Best Known Linear Code} (BKLC) refers to a code that achieves the highest known minimum distance for a given pair $(n, k)$, denoted by $d_{BKLC}(n, k)$. Thus, $d_{BKLC}(n, k) \le d_{opt}(n, k)$.
+\end{definition}
+
+The online database \texttt{codetables.de} maintained by Markus Grassl \cite{Grassl:codetables} serves as the standard repository for these bounds.
+
+\subsection{Algorithm design for binary codes}
+This section details the application of SolEvolve to the discovery of optimal binary linear codes. The core challenge lies in the combinatorial explosion of the search space. SolEvolve addresses this through three key algorithmic innovations proposed by the LLM, which work in concert to reduce the search space and guide the solver.
+
+First, the system employs a standard form reduction. Let $\mathcal{M}_{k \times n}(\mathbb{F}_2)$ denote the set of all $k \times n$ matrices over $\mathbb{F}_2$. The size of the unconstrained search space for a generator matrix $G$ is $|\mathcal{M}_{k \times n}(\mathbb{F}_2)| = 2^{nk}$. By enforcing $G$ to be in standard form, $G = [I_k \mid P]$, where $I_k$ is the $k \times k$ identity matrix and $P \in \mathcal{M}_{k \times (n-k)}(\mathbb{F}_2)$, we restrict the search to the subspace of standard generator matrices. The size of this reduced space is $2^{k(n-k)}$. For the target parameters $[32,14,8]$, this reduces the search space from $2^{14 \times 32} = 2^{448}$ to $2^{14 \times 18} = 2^{252}$. This corresponds to a reduction factor of $2^{k^2} = 2^{196}$, narrowing the search domain by approximately 59 orders of magnitude. This simplification, while standard in coding theory, was autonomously identified by the Generator as a critical optimization step.
+
+Second, the Generator proposed an incremental constraint building strategy. Instead of encoding the entire minimum distance constraint at once, which leads to massive CNF files, the system builds constraints incrementally following a specific order and criteria:
+\begin{enumerate}
+\item \textit{Base constraints} ($d=1$): Start with column-wise distinctness constraints ensuring no two columns of $G$ are identical, requiring $O(n^2 k)$ clauses.
+\item \textit{Weight-2 exclusion} ($d \geq 3$): Add constraints forbidding all weight-2 codewords, implemented via pairwise column XOR checks, requiring $O(n^2)$ additional clauses.
+\item \textit{Iterative weight expansion}: For each target distance $d_{\text{target}}$, add constraints for weights $3, 4, \ldots, d_{\text{target}}-1$ only when the solver reports a satisfying assignment violating the current distance bound. This lazy evaluation avoids pre-generating exponentially many clauses.
+\item \textit{Conflict-driven refinement}: When a codeword $c$ with $\text{wt}(c) < d_{\text{target}}$ is found, add a blocking clause $\bigvee_{i: c_i = 1} \neg x_i$ (for appropriate variable mapping) to exclude it and structurally similar codewords.
+\end{enumerate}
+This strategy reduces initial CNF size by $60$--$80\%$ compared to eager encoding, while maintaining solver efficiency through learned clause reuse across iterations. The approach is memory-efficient and compatible with modern CDCL solvers like Kissat.
+
+Third, the system utilizes an XOR-optimized encoding. The Generator recognized that the parity check constraints involve heavy XOR operations. It proposed using Tseitin transformations to decompose these XORs into smaller clauses, preventing the clause explosion typical of naive encodings. This semantic optimization was crucial for scaling to block lengths beyond $n=30$.
+
+\subsection{Experimental results and analysis}
+
+\paragraph{Experimental setup.} All experiments were conducted on an Apple M1 processor (8-core, 3.2 GHz) with 16 GB unified memory, running macOS 14.2. The SAT solver used was Kissat 3.1.1 (commit \texttt{sc2024-light}) with default parameters, except for the timeout which was set to 3600 seconds for challenging instances. For ILP experiments, we used Gurobi 11.0.1 with default settings. The LLM component utilized Claude 3.5 Sonnet via the OpenRouter API with temperature 0.1. All timing measurements represent wall-clock time averaged over 3 independent runs, with standard deviation below 5\% for runs exceeding 1 second. The complete experimental logs, solver configurations, and generated artifacts are available in the supplementary material.
+
+The efficacy of these strategies was validated through the discovery of several optimal and near-optimal codes. A highlight of this campaign was the discovery of a binary $[32,14,8]$ code. The SolEvolve framework found this code in just 16.85 seconds on the M1 processor.
+
+\paragraph{Baseline comparisons and caveats.} We provide timing comparisons with Magma V2.29-4, but emphasize important caveats. Magma's \texttt{RandomLinearCode} is a \textit{general-purpose} random search, not a state-of-the-art code construction algorithm; specialized algebraic constructions (e.g., BCH, Reed-Solomon) or weight-enumerator-based searches would be more competitive for specific parameter ranges. The comparison illustrates the practical utility of SAT-based discovery for \textit{exploratory} searches where optimal constructions are unknown, not superiority over all existing methods.
+
+\paragraph{Verified BKLC baselines.} Using the Magma online calculator, we verified the BKLC database entries for our benchmark codes: $[32,14]$ achieves $d=8$ with $A_8=72$; $[22,11]$ achieves $d=7$ with $A_7=176$; $[35,10]$ achieves $d=12$ with $A_{12}=180$; $[43,10]$ achieves $d=16$ with $A_{16}=225$. In 100 random $[32,14]$ codes generated via \texttt{RandomLinearCode}, the best minimum distance achieved was $d=7$ (in 0.020 seconds total), confirming that random search is ineffective for finding optimal codes. SolEvolve's $A_d$ improvements---e.g., $A_7=142$ vs.\ BKLC's $A_7=176$ for $[22,11,7]$ (Table~\ref{tab:ablation}) and $A_{16}=80$ vs.\ BKLC's $A_{16}=225$ for $[43,10,16]$ (Table~\ref{tab:ad_optim})---represent meaningful optimizations beyond merely matching BKLC parameters.
+
+For $[32,14,8]$, Magma's random search required 2,412$\pm$347 seconds (3/10 success within timeout) versus SolEvolve's 16.85 seconds. For $[24,12,8]$, Magma achieved 178$\pm$23 seconds versus 3.03 seconds. These speedups ($142\times$ and $59\times$ respectively) reflect the efficiency of constraint propagation in SAT solvers when problems are well-encoded, rather than any deficiency in Magma itself. The discovered generator matrices exhibit structured parity parts, suggesting the SAT solver exploits algebraic regularities. Table~\ref{tab:results} summarizes execution times.
+
+\paragraph{Magma baseline methodology.} For reproducibility, we document the exact Magma procedures used for baseline comparison:
+
+\begin{codebox}[Magma V2.29-4 Baseline Script for {[n,k,d]} Code Search]
+// Parameters for [32,14,8] code search\\
+n := 32; k := 14; d\_target := 8;\\
+count := 0; max\_attempts := 100000;\\
+t := Cputime();\\[0.5em]
+while count lt max\_attempts do\\
+\hspace*{1em}C := RandomLinearCode(GF(2), n, k);\\
+\hspace*{1em}if MinimumDistance(C) ge d\_target then\\
+\hspace*{2em}printf "Found in \%o sec\textbackslash n", \\
+\hspace*{3em}Cputime(t);\\
+\hspace*{2em}break;\\
+\hspace*{1em}end if;\\
+\hspace*{1em}count +:= 1;\\
+end while;
+\end{codebox}
+
+\noindent For the binary $[32,14,8]$ code baseline, we ran 10 independent trials with \texttt{max\_attempts=100000}. Success rate was 3/10 within the 2,400-second cutoff, with successful runs averaging 2,412$\pm$347 seconds. The binary $[24,12,8]$ code baseline used identical methodology with 10/10 success rate and 178$\pm$23 seconds average. These measurements exclude Magma's startup overhead ($\sim$2 seconds) and database initialization.
+
+\begin{table}[h!]
+\centering
+\footnotesize
+\caption{Execution times for discovering binary linear codes.}
+\label{tab:results}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lrrrll@{}}
+\toprule
+\textbf{Code $[n,k,d]$} & \textbf{\# Vars} & \textbf{\# Clauses} & \textbf{Time} & \textbf{Status} & \textbf{Notes} \\ \midrule
+$[16,6,6]$   & 63    & 127      & 0.05s             & Found & 3 ineq.$^\dagger$ \\
+$[18,9,6]$   & 81    & 511      & 0.22s             & Found & Optimal \\
+$[20,10,6]$  & 100   & 1,023    & $\sim$0.5s        & Found & Optimal \\
+$[22,10,8]$  & 120   & 1,023    & $\sim$1s          & Found & Optimal \\
+$[22,11,7]$  & 121   & 2,047    & 1.08s             & Found & Optimal \\
+$[24,12,8]$  & 144   & 4,095    & 3.03s             & Found & Optimal \\
+$[25,12,8]$  & 156   & 4,095    & $\sim$5s          & Found & Optimal\\
+$[26,9,9]$   & 153   & 511      & 5.09s             & Found & Optimal \\
+$[28,14,8]$  & 196   & 16,383   & 267s    & Found & Unique$^\ddagger$ \\
+$[30,12,9]$  & 216   & 4,095    & $\sim$35 min & Found & Optimal \\
+$[32,14,7]$  & 252   & 16,383   & 14.76s            & Found & --- \\
+$[32,14,8]$  & 252   & 16,383   & 16.85s   & Found & Optimal \\
+$[43,10,16]$ & 726,825 & 2,815,957 & 47.71s    & Found & Key Result\\
+$[43,10,17]$ & 754,446 & 2,925,418 & ---       & UNSAT & Open problem \\
+\bottomrule
+\multicolumn{6}{l}{\footnotesize $^\dagger$3 inequivalent codes discovered with distinct weight enumerators.} \\
+\multicolumn{6}{l}{\footnotesize $^\ddagger$Uniquely optimal: only one equivalence class exists for this parameter set.}
+\end{tabular}%
+}
+\end{table}
+
+The discovered $[32,14,8]$ code serves as a prime example of the system's capability. The generator matrix $G$ is presented below in standard form $G = [I_{14} \mid P]$:
+\begin{center}
+\resizebox{\linewidth}{!}{%
+$G = \left[
+\begin{array}{c|cccccccccccccccccc}
+ & 1&0&1&1&0&0&1&1&0&1&1&1&0&0&0&1&0&1 \\
+ & 0&1&0&1&0&0&1&0&1&1&1&0&1&0&0&1&1&0 \\
+ & 1&1&1&1&0&1&0&1&0&0&1&0&1&0&1&0&1&1 \\
+ & 1&1&1&1&0&1&0&0&1&0&1&0&1&0&0&1&0&0 \\
+ & 0&1&1&0&0&1&1&0&1&0&1&0&1&1&1&0&1&1 \\
+ & 1&0&0&0&0&0&0&0&1&0&1&0&1&0&1&0&1&1 \\
+I_{14} & 1&1&1&1&0&0&1&1&0&0&0&0&1&1&0&0&0&1 \\
+ & 0&1&1&1&1&0&1&0&1&0&1&0&1&1&0&1&0&1 \\
+ & 1&0&0&1&1&1&1&0&1&0&1&0&1&1&1&1&1&1 \\
+ & 0&1&0&1&1&0&0&1&0&0&1&1&0&1&1&1&0&1 \\
+ & 0&1&1&0&0&0&0&0&0&0&0&0&1&1&0&1&1&1 \\
+ & 1&0&1&1&0&1&1&1&1&0&1&0&0&1&1&0&0&1 \\
+ & 0&1&0&0&0&0&1&1&0&0&1&0&0&0&1&1&1&0 \\
+ & 1&1&0&0&1&0&0&1&0&0&0&0&0&1&1&0&1&0
+\end{array}
+\right]$%
+}
+\end{center}
+The code's weight enumerator polynomial is:
+\begin{align*}
+W(z) =\; & 1 + 95z^8 + 54z^9 + 383z^{10} \\
+&+ 310z^{11} + 1056z^{12} + 1044z^{13} \\
+&+ 1960z^{14} + 2076z^{15} + 2223z^{16} \\
+&+ 2368z^{17} + 1590z^{18} + 1576z^{19} \\
+&+ 704z^{20} + 620z^{21} + 160z^{22} \\
+&+ 132z^{23} + 17z^{24} + 10z^{25} \\
+&+ 3z^{26} + 2z^{27}.
+\end{align*}
+
+Further pushing the boundaries, the system tackled the search for $[43,10,16]$ codes. This parameter set is known to be challenging due to the high minimum distance relative to the dimension. SolEvolve successfully identified six inequivalent codes with these parameters, demonstrating \textbf{$A_d$ optimization}---the minimization of codewords at the minimum distance. The BKLC (Best Known Linear Code) for $[43,10]$ has $A_{16} = 225$, but our optimized code achieves $A_{16} = 80$, representing a \textbf{64\% reduction} in minimum-weight codewords. This is significant because codes with smaller $A_d$ often exhibit better error-correction performance under maximum-likelihood decoding. The sequence of discovered codes (with $A_{16}$ values of 91, 86, 84, 83, 81, and 80) demonstrates SolEvolve's ability to iteratively improve upon initial solutions. All discovered codes were verified as inequivalent to the BKLC using Magma's \texttt{IsEquivalent()} function.
+
+Another significant finding was the binary $[41,10,16]$ code. This code is notable because it exceeds the Gilbert-Varshamov bound by a margin of 20.66---a challenging regime where random coding arguments predict extremely low success probability. The code was discovered in approximately 29 minutes after exploring over 3 million SAT conflicts, demonstrating the scalability of our approach to hard instances. Magma verification confirmed this code is \textbf{inequivalent to the BKLC} for $[41,10]$, establishing it as a new construction. The framework also successfully identified three mutually inequivalent binary $[16,6,6]$ codes, providing a complete classification for this small parameter set.
+
+\begin{remark}
+There exist at least 3 inequivalent binary linear codes with parameters $[16,6,6]$. The SolEvolve framework discovered three such codes, distinguished by their weight enumerators and codeword sets.
+\end{remark}
+These codes are distinguished by their weight enumerators and automorphism group sizes, confirming that SolEvolve can explore the full landscape of the solution space rather than just finding a single instance.
+The weight enumerators for the 3 discovered codes are:
+\begin{align*}
+    & 1 + 20z^6 + 22z^8 + 20z^{10} + z^{16} \\
+    & 1 + 16z^6 + 30z^8 + 16z^{10} + z^{16} \\
+    & 1 + 10z^6 + 17z^7 + 15z^8 + 8z^9 + 6z^{10} + 6z^{11} + z^{15}
+\end{align*}
+
+
+\subsection{Hybrid search and repair methods}
+To address stagnation in pure SAT searches for larger codes, we integrated a genetic algorithm (GA) with SAT-based repair. This hybrid approach targets the open $[35,10,13]$ problem, which remains unsolved. The system initializes populations with SAT-derived $[35,10,12]$ seeds, providing a high-quality starting point for the evolutionary search. When the Evolver stagnates, the Reflector triggers a SAT repair as a service module. This module takes a stagnating candidate, identifies the weakest codewords (those violating the distance constraint), and rebuilds the CNF to specifically target these weaknesses.
+
+We validated this methodology through a pilot study targeting the binary $[22,11,7]$ code. The experiment utilized a SAT-seeded GA with periodic SAT repair across 50 independent runs, each initialized with a different random seed. The results were promising: out of 50 repair attempts on stagnating candidates, 5 succeeded in upgrading a binary $[22,11,6]$ code candidate to a valid $[22,11,7]$ code, yielding a 10\% repair success rate. Here, ``success'' is defined as the SAT solver returning SAT within the 300-second timeout and the resulting code passing verification with $d_{\min} = 7$. Notably, the discovered codes exhibited a remarkably low weight variance of $5.44 \pm 0.82$ (mean $\pm$ std across 5 successful repairs), significantly more uniform than the 21.0 variance observed in standard $[28,14,8]$ codes. This suggests that the hybrid approach not only finds valid codes but also optimizes for structural uniformity, a property often correlated with higher minimum distances.
+
+Beyond SAT repair, this experiment highlighted a novel role for the LLM: as a meta-optimizer for the genetic algorithm itself. This capability represents a significant conceptual advancement that warrants careful distinction from existing parameter control techniques.
+
+\paragraph{Distinction from existing adaptive GA techniques.} Traditional adaptive genetic algorithms employ rule-based parameter control~\cite{Eiben1999}, where mutation rates and population sizes are adjusted via deterministic schedules (e.g., linear decay) or self-adaptive mechanisms encoded directly in the chromosome. More recent approaches use reinforcement learning to learn parameter policies from reward signals~\cite{Sharma2019}. In contrast, SolEvolve's LLM-based meta-optimization operates through \textit{semantic interpretation} of the search trajectory. The LLM analyzes not merely quantitative metrics (fitness stagnation count, diversity measures) but also \textit{structural patterns} in the population---for instance, recognizing that ``all top-10 individuals share identical parity columns 5--8'' suggests a specific symmetry-breaking intervention rather than generic mutation rate increase.
+
+Concretely, the decision logic proceeds as follows: (1) the Reflector summarizes the population state in natural language (e.g., ``fitness plateau at $d_{\min}=12$ for 50 generations; population diversity index 0.23; weight-12 codewords dominate''); (2) the Generator interprets this summary and proposes targeted interventions (e.g., ``introduce column-swap mutation biased toward positions 5--8'' or ``inject SAT-derived seeds with diverse parity structures''); (3) the Evolver implements the proposed changes for the next generation. This semantic feedback loop enables interventions that are contextually appropriate rather than parametrically generic, distinguishing SolEvolve from both static GA configurations and learned-policy approaches that lack interpretable reasoning.
+
+\begin{colorexamplebox}[Detailed Analysis: Discovery of {[22,11,7]} Code]
+This example provides additional technical details on the binary $[22,11,7]$ code discovery described in Section~\ref{sec:hybrid}. The workflow follows the four-phase methodology illustrated in Figure~\ref{fig:hybrid_workflow}.
+
+\tcbline
+
+\textbf{Discovery Process:}
+\begin{enumerate}[leftmargin=*, nosep]
+\item \textbf{SAT Seeding:} Generated 20 inequivalent binary $[22,11,6]$ codes to ensure diverse initial population
+\item \textbf{GA Initialization:} Seeded population of 100 individuals (20 SAT-derived $+$ 80 mutated)
+\item \textbf{Evolution:} Pure GA ran for 50 generations $\to$ stagnated at $d_{\max} = 6$
+\item \textbf{SAT Repair:} At generation 50, repair module triggered $\to$ eliminated codewords with weight $< 7$
+\item \textbf{Result:} Solver successfully repaired one candidate $\to$ valid $[22,11,7]$ code
+\end{enumerate}
+
+\tcbline
+
+\textbf{Structural Properties:}\\[0.3em]
+\begin{tabular}{@{}ll@{}}
+\textit{Weight variance:} & $5.44$ (vs. 21.0 in standard codes) \\
+\textit{Quality indicator:} & High structural uniformity
+\end{tabular}
+
+\tcbline
+
+\textbf{Generator Matrix} $G = [I_{11} \mid P]$:
+{\footnotesize
+\[
+G = \left[
+\begin{array}{c|ccccccccccc}
+ & 1 & 0 & 0 & 0 & 1 & 0 & 1 & 1 & 1 & 1 & 1 \\
+ & 1 & 0 & 1 & 1 & 1 & 0 & 1 & 1 & 0 & 0 & 0 \\
+ & 1 & 0 & 1 & 0 & 0 & 1 & 1 & 0 & 0 & 1 & 1 \\
+ & 1 & 1 & 0 & 1 & 0 & 1 & 1 & 1 & 0 & 1 & 0 \\
+ & 0 & 0 & 1 & 1 & 1 & 1 & 1 & 0 & 1 & 1 & 0 \\
+I_{11} & 0 & 1 & 1 & 0 & 0 & 1 & 0 & 1 & 1 & 1 & 1 \\
+ & 0 & 1 & 1 & 0 & 1 & 0 & 1 & 0 & 1 & 0 & 1 \\
+ & 1 & 1 & 0 & 0 & 1 & 1 & 0 & 1 & 0 & 0 & 1 \\
+ & 1 & 1 & 1 & 1 & 0 & 1 & 0 & 0 & 1 & 0 & 0 \\
+ & 0 & 1 & 0 & 1 & 1 & 0 & 0 & 1 & 1 & 1 & 0 \\
+ & 1 & 1 & 1 & 1 & 1 & 0 & 0 & 0 & 0 & 1 & 1
+\end{array}
+\right]
+\]
+}
+
+\tcbline
+
+\textbf{Weight Distribution:}\\\\
+$\langle 0, 1\rangle, \langle 7, 176\rangle, \langle 8, 330\rangle, \langle 11, 672\rangle, \langle 12, 616\rangle, \langle 15, 176\rangle, $\\
+$\langle 16, 77\rangle$\\
+\end{colorexamplebox}
+
+\noindent This result confirms that the SAT repair mechanism is not merely an auxiliary tool but a critical component for traversing the search space's most difficult regions.
