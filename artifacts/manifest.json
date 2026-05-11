@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "artifact_version": "2026-05-11-repro-langsmith",
+  "official_commands": [
+    "solevolve-demo --dry-run --max-turns 1",
+    "solevolve-solver-smoke",
+    "solevolve-artifact-check"
+  ],
+  "bundled": [
+    "results/ternary_bch/summary.txt",
+    "results/gf4_hermitian/summary.txt",
+    "results/gf5_so/summary.txt"
+  ],
+  "raw_artifact_policy": "Large generated artifacts are excluded from git and should be distributed through a release asset, Zenodo record, or raw artifact archive with checksums.",
+  "excluded_from_git": [
+    "large CNF files",
+    "NumPy matrices",
+    "solver .out files",
+    "private raw console logs",
+    "scratch experiment drivers from the previous temporary-results directory"
+  ],
+  "runtime_output_dir": "artifacts",
+  "notes": "Use SOLEVOLVE_ARTIFACT_DIR to point official runtime commands at downloaded raw artifacts or locally generated results."
+}

@@ -1,9 +1,0 @@
-\section{Conclusion}\label{ch:conclusion}
-
-This study presents SolEvolve, a framework that integrates LLMs with SAT solvers and evolutionary algorithms for mathematical discovery. The closed-loop interaction between Generator, Verifier, and Reflector enables both encoding optimization and algorithm derivation, with the Reflector's semantic feedback providing measurable improvements over fitness-only baselines (Section~\ref{sec:ablation}).
-
-The framework's effectiveness is demonstrated across three combinatorial domains: binary linear codes, self-orthogonal embeddings, and generalized Lucas cubes. Key results include the discovery of optimal codes with improved weight distributions, perfect partitions extending known theoretical boundaries, and the derivation of a rank-one elimination algorithm (with contamination analysis in Section~\ref{sec:contamination}).
-
-These results suggest that LLMs can serve as effective components in formally-verified mathematical discovery pipelines. The combination of LLM-driven encoding design with rigorous SAT/ILP verification addresses the reliability concerns inherent in purely generative approaches. 
-
-\paragraph{Broader impact.} The mathematical discoveries reported here---optimal codes, perfect partitions, and self-orthogonal embeddings---have direct implications for telecommunications (e.g., enhanced transmission reliability via optimal $A_d$ binary codes), lattice-based cryptography, and fault-tolerant routing in distributed systems. Furthermore, the demonstrated methodology for reducing SAT/ILP encoding complexity provides a transferable approach for industrial combinatorial optimization and formal verification tasks. We release all code, prompts, and experimental logs to enable reproduction and extension of this work.

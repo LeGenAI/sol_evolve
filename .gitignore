@@ -1,4 +1,5 @@
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 
@@ -13,3 +14,9 @@ ENV/
 *.npy
 *.cnf
 *.log
+*.out
+
+# Runtime artifacts
+artifacts/**
+!artifacts/
+!artifacts/manifest.json

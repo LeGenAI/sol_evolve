@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use SolEvolve, please cite the Neurocomputing article."
+title: "SolEvolve: LLM-Driven Evolutionary Search for SAT-Verified Constructions in Combinatorics"
+authors:
+  - family-names: Kim
+    given-names: Jon-Lark
+  - family-names: Baek
+    given-names: Jae-Hyun
+year: 2026
+type: software
+repository-code: "https://github.com/LeGenAI/sol_evolve"
+license: MIT
