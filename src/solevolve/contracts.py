@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 EvidenceStatus = Literal["OK", "SKIPPED", "UNAVAILABLE", "ERROR", "SAT", "UNSAT", "TIMEOUT", "UNKNOWN"]
 Verdict = Literal["PASS", "PARTIAL", "SKIPPED", "INSUFFICIENT_ARTIFACT", "FAIL"]
 CoordinatorAction = Literal["continue", "stop"]
 CoordinatorMode = Literal["exploration", "exploitation", "repair", "finalize"]
+HybridGAMode = Literal["off", "archived", "replay", "live", "frontier_repair"]
+HybridGAMethod = Literal["hybrid_sat_ga"]
 EvolverActionName = Literal[
     "query_codetables",
     "run_claim_proof",
@@ -88,6 +90,10 @@ class PaperWorkflowInput(BaseModel):
         default=None,
         description="Optional prior verifier diagnostics injected into the workflow.",
     )
+    hybrid_ga_policy: HybridGAPolicy | None = Field(
+        default=None,
+        description="Optional coordinator-gated Hybrid SAT-GA execution policy enabled by CLI.",
+    )
 
 
 class VerifierDiagnostics(BaseModel):
@@ -103,6 +109,9 @@ class VerifierDiagnostics(BaseModel):
     elapsed_ms: float | None = Field(default=None, description="Elapsed wall-clock time for the associated check.", ge=0)
     memory_mb: float | None = Field(default=None, description="Peak memory in MiB if the backend reported it.", ge=0)
     artifact_hashes: dict[str, str] = Field(default_factory=dict, description="SHA-256 hashes for referenced artifacts.")
+    diversity: float | None = Field(default=None, description="Population diversity D_t in [0,1], if available.", ge=0, le=1)
+    improvement_rate: float | None = Field(default=None, description="Best-fitness improvement rate over the run, if available.")
+    repair_count: int | None = Field(default=None, description="Number of SAT repair events attempted in the run.", ge=0)
 
 
 class ReflectorAction(BaseModel):
@@ -124,6 +133,10 @@ class PaperWorkflowOutput(BaseModel):
     codetables_results: list[CodetablesLookupResult] = Field(default_factory=list, description="Sanitized codetables.de references.")
     solver_runs: list[dict[str, Any]] = Field(default_factory=list, description="Compact solver execution records.")
     diagnostics: list[VerifierDiagnostics] = Field(default_factory=list, description="Deterministic verifier diagnostics.")
+    hybrid_ga_reports: list[HybridGAReport] = Field(
+        default_factory=list,
+        description="Coordinator-executed Hybrid SAT-GA reports produced during this workflow.",
+    )
     reflector_action: ReflectorAction | None = Field(default=None, description="Final paper-vocabulary Reflector action.")
     decision: dict[str, Any] | None = Field(default=None, description="Validated central coordinator decision payload.")
     verdict: Verdict = Field(description="Final evidence-backed workflow verdict.")
@@ -162,9 +175,114 @@ class EvolverAction(BaseModel):
 
     action: EvolverActionName = Field(description="Whitelisted action for the deterministic coordinator to execute.")
     claim_id: str | None = Field(default=None, description="Paper claim id targeted by this action, if applicable.")
+    method: HybridGAMethod | None = Field(
+        default=None,
+        description=(
+            "Optional bounded construction method requested by the Evolver. "
+            "hybrid_sat_ga is valid only with action='construction_search' and "
+            "a registered Hybrid SAT-GA claim id."
+        ),
+    )
+    mode: HybridGAMode | None = Field(
+        default=None,
+        description=(
+            "Optional Hybrid SAT-GA execution mode when method='hybrid_sat_ga'. "
+            "This is a request only; the deterministic coordinator must reject it unless it is null "
+            "or exactly matches the CLI-owned HybridGAPolicy.mode."
+        ),
+    )
     reason: str = Field(description="Short rationale grounded in deterministic evidence or prior role outputs.")
     timeout_sec: int | None = Field(default=None, description="Optional timeout in seconds for solver-backed actions.", ge=1)
     evidence_used: list[str] = Field(default_factory=list, description="Evidence item names used to choose this action.")
+
+    @model_validator(mode="after")
+    def _validate_hybrid_method_surface(self) -> "EvolverAction":
+        if self.method == "hybrid_sat_ga":
+            if self.action != "construction_search":
+                raise ValueError("method='hybrid_sat_ga' is only valid with action='construction_search'.")
+            if self.claim_id != "binary_22_11_7_hybrid_ga":
+                raise ValueError(
+                    "method='hybrid_sat_ga' is only registered for claim_id='binary_22_11_7_hybrid_ga'."
+                )
+        elif self.mode is not None:
+            raise ValueError("mode is only valid when method='hybrid_sat_ga'.")
+        return self
+
+
+class HybridGAPolicy(BaseModel):
+    """Coordinator-owned policy for optional Hybrid SAT-GA execution."""
+
+    enabled: bool = Field(description="Whether the Hybrid SAT-GA branch is enabled for this run.")
+    mode: HybridGAMode = Field(default="off", description="Execution mode for the Hybrid SAT-GA branch.")
+    seed: int = Field(default=0, description="Deterministic random seed used for replay/live population operations.", ge=0)
+    population: int = Field(default=100, description="Population size for replay/live GA runs.", ge=1)
+    generations: int = Field(default=100, description="Maximum number of GA generations.", ge=0)
+    repair_interval: int = Field(default=50, description="SAT repair interval in generations; 0 disables repair.", ge=0)
+    timeout_sec: int = Field(default=300, description="Timeout in seconds for each SAT-backed repair or live seed attempt.", ge=1)
+    solver_preference: str = Field(default="cadical", description="Preferred SAT solver backend for repair/live modes.")
+    target_distance: int = Field(default=7, description="Target minimum distance for frontier-repair workflows.", ge=1)
+    frontier_distance: int | None = Field(
+        default=None,
+        description="Frontier seed minimum distance; defaults to target_distance - 1.",
+        ge=1,
+    )
+    frontier_seed_count: int = Field(default=20, description="Number of frontier seeds requested from SAT.", ge=1)
+    frontier_target_timeout_sec: int = Field(default=60, description="Timeout for the direct target-distance SAT attempt.", ge=1)
+    frontier_seed_timeout_sec: int = Field(default=30, description="Timeout per frontier seed SAT attempt.", ge=1)
+    repair_strategy: str = Field(
+        default="low_weight_support_mask",
+        description="Coordinator-owned SAT repair strategy for frontier-repair mode.",
+    )
+
+    @model_validator(mode="after")
+    def _default_frontier_distance(self) -> "HybridGAPolicy":
+        if self.frontier_distance is None:
+            self.frontier_distance = max(1, self.target_distance - 1)
+        return self
+
+
+class HybridGARepairEvent(BaseModel):
+    """One coordinator-executed SAT repair attempt inside Hybrid SAT-GA."""
+
+    generation: int = Field(description="Generation at which the repair was attempted.", ge=0)
+    candidate_id: str = Field(description="Stable candidate identifier within the run.")
+    pre_repair_diagnostics: dict[str, Any] = Field(description="Compact candidate diagnostics before repair.")
+    mutable_columns: list[int] = Field(description="Full generator-matrix column indices left mutable in the SAT repair CNF.")
+    solver_status: str = Field(description="SAT solver status for this repair attempt.")
+    elapsed_ms: float = Field(description="Elapsed wall-clock time for the repair attempt in milliseconds.", ge=0)
+    post_repair_diagnostics: dict[str, Any] | None = Field(
+        default=None,
+        description="Compact candidate diagnostics after repair, when a repaired matrix was found.",
+    )
+    post_repair_matrix: list[list[int]] | None = Field(
+        default=None,
+        exclude=True,
+        description="Internal repaired matrix for final verification; excluded from reports and traces.",
+    )
+
+
+class HybridGAReport(BaseModel):
+    """Reviewer-facing report for one Hybrid SAT-GA execution."""
+
+    claim_id: str = Field(description="Hybrid SAT-GA claim id.")
+    mode: HybridGAMode = Field(description="Execution mode used for this report.")
+    config: dict[str, Any] = Field(description="Secret-free execution configuration.")
+    seed_status: str = Field(description="How the initial population or archived witness was obtained.")
+    seed_bank: dict[str, Any] | None = Field(
+        default=None,
+        description="Compact frontier seed-bank summary without raw matrices.",
+    )
+    frontier_solver_runs: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Compact direct-target and frontier-seed SAT run records.",
+    )
+    generation_summaries: list[dict[str, Any]] = Field(default_factory=list, description="Compact per-generation metrics.")
+    repair_events: list[HybridGARepairEvent] = Field(default_factory=list, description="SAT repair events attempted.")
+    solver_runs: list[dict[str, Any]] = Field(default_factory=list, description="Compact solver execution records.")
+    final_diagnostics: dict[str, Any] = Field(default_factory=dict, description="Final deterministic verifier diagnostics.")
+    verdict: Verdict = Field(description="Evidence-backed Hybrid SAT-GA verdict.")
+    missing_obligations: list[str] = Field(default_factory=list, description="Missing obligations preventing PASS.")
+    artifact_paths: list[str] = Field(default_factory=list, description="Reviewer-facing report/artifact paths.")
 
 
 class CodetablesLookupResult(BaseModel):

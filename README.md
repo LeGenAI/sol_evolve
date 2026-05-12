@@ -91,18 +91,19 @@ The public package exposes these supported commands:
 solevolve-reviewer-reproduce --paper-claim-id all_so_table --cadical-path /path/to/cadical --require-pass
 solevolve-reviewer-reproduce --paper-claim-id lucas_cubes
 solevolve-reviewer-reproduce --paper-claim-id binary_ad_43_10_16 --require-pass
+solevolve-reviewer-reproduce --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode archived --require-pass
 solevolve-reviewer-reproduce --paper-claim-id all_reviewer_core --cadical-path /path/to/cadical
 solevolve-reproduce-ternary-bch --cadical-path /path/to/cadical
 solevolve-reproduce-paper-claims --paper-claim-id ternary_bch_d9
 solevolve-demo --paper-claim-id ternary_bch_d9 --max-turns 4 "Goal: assess the ternary BCH d=9 table claim from deterministic SAT evidence."
 ```
 
-- `solevolve-reviewer-reproduce`: runs the deterministic reviewer reproduction bundle and writes JSON/Markdown acceptance reports for SO, Lucas, and binary claim suites.
+- `solevolve-reviewer-reproduce`: runs the deterministic reviewer reproduction bundle and writes JSON/Markdown acceptance reports for SO, Lucas, binary, and the archived Hybrid SAT-GA `[22,11,7]` claim.
 - `solevolve-reproduce-ternary-bch`: deterministically reproduces the ternary BCH `[13,7,5]_3` self-orthogonal embedding claim with CaDiCaL SAT feasibility plus direct GF(3) witness verification.
 - `solevolve-reproduce-paper-claims`: uses the paper claim registry for `ternary_bch_d9`, `gf4_hermitian`, `gf5_so`, or `all_so_table`; it verifies explicit matrices, runs SAT feasibility when CaDiCaL is available, and attempts the d+1 obligation under the configured timeout.
 - `solevolve-demo`: runs the traceable LLM graph. It requires `OPENROUTER_API_KEY`; reviewer acceptance should use `solevolve-reviewer-reproduce`.
 
-`solevolve-demo` starts by resolving the paper-style input contract (`paper_input`) from `--paper-claim-id` or `--target-json`, then records artifact manifest status and optional solver availability before any LLM role runs. `--max-turns` is the strict maximum number of agent invocations after setup; reaching the cap stops the graph before the next role is called. The default graph does not let LLMs freely call tools. The LLM Evolver emits a validated `EvolverAction`; the coordinator then executes whitelisted codetables/SAT proof actions and writes the reviewer-facing `paper_output`.
+`solevolve-demo` starts by resolving the paper-style input contract (`paper_input`) from `--paper-claim-id` or `--target-json`, then records artifact manifest status and optional solver availability before any LLM role runs. `--max-turns` is the strict maximum number of agent invocations after setup; reaching the cap stops the graph before the next role is called. The default graph does not let LLMs freely call tools. The LLM Evolver emits a validated `EvolverAction`; the coordinator then executes whitelisted codetables/SAT proof actions or, when enabled by `--hybrid-ga-mode`, the gated Hybrid SAT-GA branch, and writes the reviewer-facing `paper_output`.
 
 Coordinator verdicts use these statuses:
 
@@ -116,18 +117,29 @@ Coordinator verdicts use these statuses:
 - `src/solevolve/agents`: Generator, Evolver, Verifier, and Reflector agent wrappers.
 - `src/solevolve/engines`: SAT/CNF encoding and solver interfaces for binary code search.
 - `src/solevolve/claim_registry.py`: machine-readable paper claim data for the ternary BCH, GF(4), and GF(5) self-orthogonal rows.
-- `src/solevolve/lucas_repro.py` and `src/solevolve/binary_repro.py`: deterministic verifiers for Lucas perfect partitions and binary `[43,10,16]` `A_16` progression.
-- `artifacts/reviewer_core_claims.json`: the minimal public reviewer evidence bundle for Lucas and binary-code claims.
+- `src/solevolve/lucas_repro.py`, `src/solevolve/binary_repro.py`, and `src/solevolve/hybrid_ga.py`: deterministic verifiers for Lucas perfect partitions, binary `[43,10,16]` `A_16` progression, and the coordinator-gated Hybrid SAT-GA `[22,11,7]` public witness.
+- `artifacts/reviewer_core_claims.json`: the minimal public reviewer evidence bundle for Lucas, binary-code, and archived Hybrid SAT-GA claims.
+- `artifacts/reviewer_experiment_summaries.json` and `artifacts/reviewer_experiment_summaries.csv`: compact public summaries for the `[22,11,7]` repair ablation, `[35,10,12]` `A_12` diversity reanalysis, `[32,14,8]` construction/BKLC baseline context, the 2026-05-12 Magma BKLC snapshot, and the Lucas L7 ball-size audit.
 - `artifacts/manifest.json`: public manifest describing which evidence is bundled and which raw logs should be released separately.
 
 ## Public Scope
 
 The public release scope is deliberately narrow:
 
-- included: package source, CLI entrypoints, docs, `artifacts/manifest.json`, and `artifacts/reviewer_core_claims.json`
+- included: package source, CLI entrypoints, docs, `artifacts/manifest.json`, `artifacts/reviewer_core_claims.json`, and `artifacts/reviewer_experiment_summaries.{json,csv}`
 - excluded: tests, runtime reports, LangSmith exports, CNFs, solver models, generated NumPy files, private logs, and scratch experiment drivers
 
-Large CNF files, NumPy matrices, solver outputs, private raw console logs, runtime traces, test folders, and long-form exploratory drivers are intentionally excluded from the public artifact scope. The public bundle is intentionally small: `artifacts/manifest.json` plus `artifacts/reviewer_core_claims.json`. The Lucas `n=15` center sets are bundled as compact bitstring lists inside `reviewer_core_claims.json`; raw SAT logs and NumPy copies remain excluded. Use `SOLEVOLVE_ARTIFACT_DIR` to point runtime commands to local or downloaded artifacts.
+Large CNF files, NumPy matrices, solver outputs, private raw console logs, runtime traces, test folders, and long-form exploratory drivers are intentionally excluded from the public artifact scope. The public bundle is intentionally small: `artifacts/manifest.json`, `artifacts/reviewer_core_claims.json`, and `artifacts/reviewer_experiment_summaries.{json,csv}`. The Lucas `n=15` center sets are bundled as compact bitstring lists inside `reviewer_core_claims.json`; the binary-code experiment summaries keep only hashes, counts, weight-distribution summaries, timing provenance, and the snapshot-dated Magma BKLC values used for manuscript comparisons. Raw SAT logs and NumPy copies remain excluded. Use `SOLEVOLVE_ARTIFACT_DIR` to point runtime commands to local or downloaded artifacts.
+
+Hybrid SAT-GA is opt-in in the LangGraph path. Reviewer-safe verification uses only the archived public witness:
+
+```bash
+solevolve-reviewer-reproduce --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode archived --require-pass
+solevolve-demo --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode replay --max-turns 4 "Goal: reproduce the binary [22,11,7] Hybrid SAT-GA claim."
+solevolve-demo --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode frontier_repair --hybrid-ga-frontier-distance 6 --hybrid-ga-frontier-seed-count 20 --max-turns 4 "Goal: run frontier seed-bank Hybrid SAT-GA repair for [22,11,7]."
+```
+
+`archived` verifies the bundled final matrix as a `[22,11,7]` code with `A_7=176`. `replay` reruns the deterministic archived `d=6 -> d=7` repair replay. `frontier_repair` first tries direct target-distance SAT, then falls back to a `d-1` seed bank, GA population search, and low-weight-support SAT repair. `live` is marked exploratory and may return `PARTIAL` if CaDiCaL repair/seed work times out.
 
 See `docs/reproducibility.md` for the paper-code checklist, included/excluded artifact policy, and benchmarked open-source release standards used for this cleanup.
 
@@ -146,6 +158,7 @@ SolEvolve records deterministic run metadata without uploading raw API keys, cli
 - `solevolve.paper_input`, `solevolve.repro_check`, `solevolve.artifact_check`, `solevolve.solver_check`
 - `solevolve.generator`, `solevolve.evolver`, `solevolve.verifier`, `solevolve.reflector`
 - `solevolve.bounds_lookup`, codetables lookup, paper-claim SAT proof, solver, `solevolve.paper_output`, fetch, Python execution, and artifact-write tools
+- `solevolve.hybrid_ga`, `hybrid_ga:archived_verify`, `hybrid_ga:frontier_target_sat`, `hybrid_ga:frontier_seed_bank`, `hybrid_ga:init_population`, `hybrid_ga:init_from_seed_bank`, `hybrid_ga:evolve`, `hybrid_ga:sat_repair`, `hybrid_ga:final_verify`, and `hybrid_ga:report` when `--hybrid-ga-mode` is enabled
 
 `solevolve.run_python` and `solevolve.fetch_url` are manual-only tools. They remain traced and documented but are not used by the default repro graph.
 

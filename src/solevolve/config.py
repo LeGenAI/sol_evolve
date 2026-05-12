@@ -24,6 +24,18 @@ class Settings:
     trace_tags: tuple[str, ...] = ("revision", "reproducibility", "github")
     paper_claim_id: str | None = None
     paper_claim_timeout: int = 300
+    hybrid_ga_mode: str = "off"
+    hybrid_ga_seed: int = 0
+    hybrid_ga_population: int = 100
+    hybrid_ga_generations: int = 100
+    hybrid_ga_repair_interval: int = 50
+    hybrid_ga_timeout_sec: int = 300
+    hybrid_ga_target_distance: int = 7
+    hybrid_ga_frontier_distance: int | None = None
+    hybrid_ga_frontier_seed_count: int = 20
+    hybrid_ga_frontier_target_timeout_sec: int = 60
+    hybrid_ga_frontier_seed_timeout_sec: int = 30
+    hybrid_ga_repair_strategy: str = "low_weight_support_mask"
 
 
 def _split_tags(value: str | None) -> tuple[str, ...]:
@@ -35,6 +47,11 @@ def _split_tags(value: str | None) -> tuple[str, ...]:
 def _solver_preference(value: str | None) -> str:
     normalized = (value or "cadical").lower()
     return normalized if normalized in {"cadical", "kissat"} else "cadical"
+
+
+def _hybrid_ga_mode(value: str | None) -> str:
+    normalized = (value or "off").lower()
+    return normalized if normalized in {"off", "archived", "replay", "live", "frontier_repair"} else "off"
 
 
 def load_settings(*, require_api_key: bool = True) -> Settings:
@@ -58,6 +75,22 @@ def load_settings(*, require_api_key: bool = True) -> Settings:
         trace_tags=_split_tags(os.getenv("SOLEVOLVE_TRACE_TAGS")),
         paper_claim_id=os.getenv("SOLEVOLVE_PAPER_CLAIM_ID") or None,
         paper_claim_timeout=int(os.getenv("SOLEVOLVE_PAPER_CLAIM_TIMEOUT", "300")),
+        hybrid_ga_mode=_hybrid_ga_mode(os.getenv("SOLEVOLVE_HYBRID_GA_MODE")),
+        hybrid_ga_seed=int(os.getenv("SOLEVOLVE_HYBRID_GA_SEED", "0")),
+        hybrid_ga_population=int(os.getenv("SOLEVOLVE_HYBRID_GA_POPULATION", "100")),
+        hybrid_ga_generations=int(os.getenv("SOLEVOLVE_HYBRID_GA_GENERATIONS", "100")),
+        hybrid_ga_repair_interval=int(os.getenv("SOLEVOLVE_HYBRID_GA_REPAIR_INTERVAL", "50")),
+        hybrid_ga_timeout_sec=int(os.getenv("SOLEVOLVE_HYBRID_GA_TIMEOUT_SEC", "300")),
+        hybrid_ga_target_distance=int(os.getenv("SOLEVOLVE_HYBRID_GA_TARGET_DISTANCE", "7")),
+        hybrid_ga_frontier_distance=(
+            int(os.environ["SOLEVOLVE_HYBRID_GA_FRONTIER_DISTANCE"])
+            if os.getenv("SOLEVOLVE_HYBRID_GA_FRONTIER_DISTANCE")
+            else None
+        ),
+        hybrid_ga_frontier_seed_count=int(os.getenv("SOLEVOLVE_HYBRID_GA_FRONTIER_SEED_COUNT", "20")),
+        hybrid_ga_frontier_target_timeout_sec=int(os.getenv("SOLEVOLVE_HYBRID_GA_FRONTIER_TARGET_TIMEOUT_SEC", "60")),
+        hybrid_ga_frontier_seed_timeout_sec=int(os.getenv("SOLEVOLVE_HYBRID_GA_FRONTIER_SEED_TIMEOUT_SEC", "30")),
+        hybrid_ga_repair_strategy=os.getenv("SOLEVOLVE_HYBRID_GA_REPAIR_STRATEGY", "low_weight_support_mask"),
     )
 
 

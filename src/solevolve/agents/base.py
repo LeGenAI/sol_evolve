@@ -49,10 +49,27 @@ def _truth_ledger(
     ledger: dict[str, Any] = {
         "evidence_status": {},
         "solver_check": None,
+        "hybrid_ga_policy": None,
         "paper_claims": [],
         "missing_obligations": [],
         "lucas_targets": [],
     }
+    hybrid_policy = (paper_input or {}).get("hybrid_ga_policy") if isinstance(paper_input, dict) else None
+    if isinstance(hybrid_policy, dict):
+        ledger["hybrid_ga_policy"] = {
+            "enabled": hybrid_policy.get("enabled"),
+            "mode": hybrid_policy.get("mode"),
+            "target_distance": hybrid_policy.get("target_distance"),
+            "frontier_distance": hybrid_policy.get("frontier_distance"),
+            "frontier_seed_count": hybrid_policy.get("frontier_seed_count"),
+            "frontier_target_timeout_sec": hybrid_policy.get("frontier_target_timeout_sec"),
+            "frontier_seed_timeout_sec": hybrid_policy.get("frontier_seed_timeout_sec"),
+            "repair_strategy": hybrid_policy.get("repair_strategy"),
+            "rule": (
+                "Evolver may request method=hybrid_sat_ga only for claim_id=binary_22_11_7_hybrid_ga, "
+                "and JSON mode must be null or exactly equal to this policy mode."
+            ),
+        }
     targets = (paper_input or {}).get("targets", []) if isinstance(paper_input, dict) else []
     for target in targets:
         if not isinstance(target, dict):
@@ -113,6 +130,19 @@ def _truth_ledger(
                     "exact_cover": details.get("lucas_exact_cover"),
                     "minimum_pairwise_distance": details.get("lucas_minimum_pairwise_distance"),
                     "ball_size_distribution": details.get("lucas_ball_size_distribution"),
+                }
+            if details.get("claim_family") == "hybrid_sat_ga":
+                claim["hybrid_ga"] = {
+                    "mode": details.get("hybrid_ga_mode"),
+                    "seed_status": details.get("hybrid_ga_seed_status"),
+                    "rank": details.get("hybrid_ga_rank"),
+                    "d_min": details.get("hybrid_ga_best_d_min"),
+                    "A_d": details.get("hybrid_ga_best_A_d"),
+                    "weight_distribution": details.get("hybrid_ga_weight_distribution"),
+                    "generation_count": details.get("hybrid_ga_generation_count"),
+                    "repair_count": details.get("hybrid_ga_repair_count"),
+                    "diversity": details.get("hybrid_ga_diversity"),
+                    "elapsed_ms": details.get("hybrid_ga_elapsed_ms"),
                 }
             ledger["paper_claims"].append(claim)
 

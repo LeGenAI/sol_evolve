@@ -1,0 +1,22 @@
+claim_id,metric,value,status,source,note
+lucas_l7_s4,selected_ball_distribution,"{6:7,7:7,8:1}",selected,lambda7_k15_certificate.txt,Induced Lucas graph distribution sums to 99; older manuscript distribution sums to 107.
+lucas_l7_s4,vertex_count,99,verified,lambda7_k15_certificate.txt,Closed-neighborhood exact cover.
+binary_22_11_7_repair_ablation,Standard GA fitness only,1/50 (0.0200),summary,R2-3_wilson_ci.csv,"Wilson 95% CI [0.0035,0.1050]"
+binary_22_11_7_repair_ablation,GA plus SAT repair no Reflector,2/50 (0.0400),summary,R2-3_wilson_ci.csv,"Wilson 95% CI [0.0110,0.1346]"
+binary_22_11_7_repair_ablation,Full SolEvolve,5/50 (0.1000),summary,R2-3_wilson_ci.csv,"Wilson 95% CI [0.0435,0.2136]"
+binary_35_10_12_a12_diversity,min_A12,54,summary,R1-2_A12_reanalysis.csv,68 verified result files; not an inequivalence claim.
+binary_35_10_12_a12_diversity,mean_A12,67.838235,summary,R1-2_A12_reanalysis.csv,68 verified result files; not an inequivalence claim.
+binary_35_10_12_a12_diversity,median_A12,65.0,summary,R1-2_A12_reanalysis.csv,68 verified result files; not an inequivalence claim.
+binary_35_10_12_a12_diversity,max_A12,98,summary,R1-2_A12_reanalysis.csv,68 verified result files; not an inequivalence claim.
+binary_35_10_12_a12_diversity,population_std_A12,9.226895,summary,R1-2_A12_reanalysis.csv,68 verified result files; not an inequivalence claim.
+binary_32_14_8_construction,manuscript_solution_A8,95,verified,code_32_14_8_result.txt,Printed manuscript matrix witness.
+binary_32_14_8_construction,manuscript_reported_sol_evolve_time_sec,16.85,reported,manuscript sections/A1_binary_codes.tex,Raw timing log for the exact printed matrix is not bundled.
+binary_32_14_8_construction,cadical_archive_solution_A8,88,verified,code_32_14_8_solution1_result.txt,Different valid archived witness.
+binary_32_14_8_construction,cadical_archive_real_time_sec,40.15,solver_log,code_32_14_8_iter1.cnf.cadical.out,CaDiCaL SAT log for the companion archived witness.
+binary_32_14_8_construction,bklc_snapshot_A8,377,snapshot,R2-4_BKLC_snapshot_2026-05-12.md,"Magma V2.29-6, accessed 2026-05-12; previous 72 is A22."
+binary_32_14_8_construction,bklc_snapshot_A22,72,snapshot,R2-4_BKLC_snapshot_2026-05-12.md,Explains the manuscript transcription error.
+binary_32_14_8_construction,manuscript_solution_A8_reduction_vs_BKLC,74.801%,derived,reviewer_experiment_summaries.json,(377-95)/377.
+binary_32_14_8_construction,cadical_archive_A8_reduction_vs_BKLC,76.658%,derived,reviewer_experiment_summaries.json,(377-88)/377.
+binary_32_14_8_construction,magma_random_baseline_successes,3/10,reported,manuscript sections/A1_binary_codes.tex,Success within 2400s cutoff; mean successful time 2412+-347s.
+bklc_snapshot_2026_05_12,"[16,6]_A6",27,snapshot,R2-4_BKLC_snapshot_2026-05-12.md,Optional comparison hook; not promoted to main claim without matching SolEvolve artifact evidence.
+bklc_snapshot_2026_05_12,"[41,10]_A16",220,snapshot,R2-4_BKLC_snapshot_2026-05-12.md,Optional comparison hook; needs archived SolEvolve A16 before reporting a ratio.

@@ -25,6 +25,8 @@ artifacts/**
 !artifacts/
 !artifacts/manifest.json
 !artifacts/reviewer_core_claims.json
+!artifacts/reviewer_experiment_summaries.json
+!artifacts/reviewer_experiment_summaries.csv
 
 # Internal contributor tests are intentionally not part of the public artifact scope.
 tests/

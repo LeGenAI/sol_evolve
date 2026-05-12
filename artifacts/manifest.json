@@ -1,17 +1,20 @@
 {
   "schema_version": 1,
-  "artifact_version": "2026-05-12-public-reviewer-core",
+  "artifact_version": "2026-05-12-public-reviewer-core-plus-experiment-summaries",
   "official_commands": [
     "solevolve-reviewer-reproduce --paper-claim-id all_so_table",
     "solevolve-reviewer-reproduce --paper-claim-id lucas_cubes",
     "solevolve-reviewer-reproduce --paper-claim-id binary_ad_43_10_16",
+    "solevolve-reviewer-reproduce --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode archived --require-pass",
     "solevolve-reviewer-reproduce --paper-claim-id all_reviewer_core"
   ],
   "reviewer_command": "solevolve-reviewer-reproduce --paper-claim-id all_reviewer_core --cadical-path /path/to/cadical",
   "bundled": [
-    "artifacts/reviewer_core_claims.json"
+    "artifacts/reviewer_core_claims.json",
+    "artifacts/reviewer_experiment_summaries.json",
+    "artifacts/reviewer_experiment_summaries.csv"
   ],
-  "raw_artifact_policy": "Large generated artifacts are excluded from git and should be distributed through a release asset, Zenodo record, or raw artifact archive with checksums. The compact Lucas n=15 center lists needed for reviewer reproduction are bundled in reviewer_core_claims.json.",
+  "raw_artifact_policy": "Large generated artifacts are excluded from git and should be distributed through a release asset, Zenodo record, or raw artifact archive with checksums. The compact Lucas n=15 center lists needed for reviewer reproduction are bundled in reviewer_core_claims.json. Reviewer experiment summaries for [22,11,7], [35,10,12], [32,14,8], the 2026-05-12 Magma BKLC snapshot, and the Lucas L7 distribution audit are bundled as compact JSON/CSV without raw CNFs, solver models, NumPy matrices, or private experiment directories.",
   "excluded_from_git": [
     "large CNF files",
     "NumPy matrices",
@@ -22,5 +25,5 @@
     "scratch experiment drivers from the previous temporary-results directory"
   ],
   "runtime_output_dir": "artifacts",
-  "notes": "The public bundle is intentionally minimal: manifest plus reviewer_core_claims.json. Use SOLEVOLVE_ARTIFACT_DIR to point official runtime commands at downloaded raw artifacts or locally generated results."
+  "notes": "The public bundle is intentionally minimal: manifest, reviewer_core_claims.json, and reviewer_experiment_summaries.{json,csv}. Use SOLEVOLVE_ARTIFACT_DIR to point official runtime commands at downloaded raw artifacts or locally generated results."
 }

@@ -40,6 +40,7 @@ Every `solevolve-demo` trace starts with deterministic repro evidence:
 - `solevolve.artifact_check` validates the artifact manifest.
 - `solevolve.solver_check` records solver availability as `OK`, `ERROR`, or `SKIPPED`, with CaDiCaL checked first by default.
 - When a paper claim is set, the LLM Evolver emits a schema action and the deterministic `evolver_action` node runs `solevolve.bounds_lookup`, codetables lookup, and paper-claim proof tools.
+- When `--hybrid-ga-mode` is enabled and the Evolver emits `{"action":"construction_search","method":"hybrid_sat_ga"}`, the coordinator runs `solevolve.hybrid_ga` with child spans `hybrid_ga:archived_verify`, `hybrid_ga:frontier_target_sat`, `hybrid_ga:frontier_seed_bank`, `hybrid_ga:init_population`, `hybrid_ga:init_from_seed_bank`, `hybrid_ga:evolve`, `hybrid_ga:sat_repair`, `hybrid_ga:final_verify`, and `hybrid_ga:report` as applicable. The Evolver JSON `mode` must be null or exactly match the CLI-owned `--hybrid-ga-mode`; mode switching is fail-closed.
 - `solevolve.paper_output` emits the reviewer-facing target, codetables results, solver runs, verifier diagnostics, Reflector action, decision, verdict, missing obligations, and artifact paths.
 
 The direct paper-claim reproduction command avoids LangGraph node spans and records a compact hierarchy:
@@ -60,6 +61,18 @@ export SOLEVOLVE_PAPER_CLAIM_ID=ternary_bch_d9
 export SOLEVOLVE_PAPER_CLAIM_TIMEOUT=300
 export CADICAL_PATH=/path/to/cadical
 solevolve-demo --max-turns 4 "Goal: assess the ternary BCH d=9 table claim from deterministic SAT evidence."
+```
+
+For the optional Hybrid SAT-GA LangGraph branch:
+
+```bash
+export SOLEVOLVE_STRICT_TRACING=true
+export SOLEVOLVE_PAPER_CLAIM_ID=binary_22_11_7_hybrid_ga
+solevolve-demo --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode replay --max-turns 4 \
+  "Goal: reproduce the binary [22,11,7] Hybrid SAT-GA claim."
+solevolve-demo --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode frontier_repair \
+  --hybrid-ga-frontier-distance 6 --hybrid-ga-frontier-seed-count 20 --max-turns 4 \
+  "Goal: run frontier seed-bank Hybrid SAT-GA repair for [22,11,7]."
 ```
 
 The graph is centrally gated by deterministic coordinator logic. The default graph does not allow free LLM tool-calling; the Evolver emits a validated `EvolverAction`, then the coordinator runs whitelisted codetables/proof tools. LLM role calls receive evidence as a provider-compatible single user handoff. They should not report raw CNF, model, center-set, or matrix claims as reproduced unless deterministic evidence supports them.
@@ -107,7 +120,7 @@ Traces include run parameters, solver status, timing, artifact paths, hashes, an
 
 Solver metadata is intentionally structured for filtering. `solevolve.solver_check` includes `preferred_solver`, `selected_solver`, `selected_path`, `selected_source`, `cwd`, `argv`, `command`, candidate `exists`/`executable` flags, `elapsed_ms`, and `version_elapsed_ms` when a binary is found. Root run metadata also mirrors `solver_backend`, `solver_path`, `solver_command`, `solver_cwd`, `solver_version`, and `solver_check_elapsed_ms`. `solevolve.run_solver` and `solevolve.run_sat_search` add run metadata under `solver`, plus flat keys `solver_backend`, `solver_path`, `solver_elapsed_ms`, and `solver_total_elapsed_ms`.
 
-Paper-claim metadata is mirrored separately from solver availability metadata. Root summaries include `paper_input`, `paper_output`, `paper_claim_execution`, `claim_results`, `codetables_refs`, `paper_claim_verdict`, `paper_claim_solver_command`, `paper_claim_solver_elapsed_ms`, `paper_claim_optimality_command`, and `paper_claim_optimality_elapsed_ms`. These fields refer to actual CNF solves, while `solver_execution` remains only the availability/version check. codetables traces store URL, parsed bounds, timestamp/hash, and cache path, not raw HTML. `paper_output.solver_runs` records actual solver argv/cwd/path, CNF path/hash, SAT status, return code, elapsed wall time, timeout, and memory when available.
+Paper-claim metadata is mirrored separately from solver availability metadata. Root summaries include `paper_input`, `paper_output`, `paper_claim_execution`, `claim_results`, `codetables_refs`, `paper_claim_verdict`, `paper_claim_solver_command`, `paper_claim_solver_elapsed_ms`, `paper_claim_optimality_command`, and `paper_claim_optimality_elapsed_ms`. These fields refer to actual CNF solves, while `solver_execution` remains only the availability/version check. codetables traces store URL, parsed bounds, timestamp/hash, and cache path, not raw HTML. `paper_output.solver_runs` records actual solver argv/cwd/path, CNF path/hash, SAT status, return code, elapsed wall time, timeout, and memory when available. Hybrid SAT-GA root metadata includes `hybrid_ga_mode`, `hybrid_ga_verdict`, `hybrid_ga_generation_count`, `hybrid_ga_repair_count`, and `hybrid_ga_solver_elapsed_ms`; raw matrices are not uploaded.
 
 LLM cost is recorded as an estimate in metadata because LangSmith's native `costs` field may stay empty for OpenRouter model aliases. SolEvolve first uses `SOLEVOLVE_PROMPT_COST_PER_1M` and `SOLEVOLVE_COMPLETION_COST_PER_1M` when set; otherwise it tries OpenRouter's public `/models` pricing metadata. Agent invoke runs include `llm_cost` and `llm_estimated_cost_usd`; the root run includes `estimated_total_cost_usd`, `llm_prompt_tokens`, `llm_completion_tokens`, `llm_total_tokens`, `cost_currency`, and `cost_pricing_sources`.
 

@@ -16,6 +16,8 @@ from .contracts import (
     CoordinatorDecision,
     EvidenceItem,
     EvolverAction,
+    HybridGAPolicy,
+    HybridGAReport,
     PaperTarget,
     PaperWorkflowInput,
     PaperWorkflowOutput,
@@ -25,6 +27,7 @@ from .contracts import (
     default_coordinator_decision,
     fallback_coordinator_decision,
 )
+from .hybrid_ga import HYBRID_CLAIM_ID, HYBRID_CLAIM_IDS, run_hybrid_ga
 from .reviewer_claims import (
     codetables_query_for_claim,
     expand_reviewer_claim_ids,
@@ -64,6 +67,7 @@ def _build_paper_workflow_input_impl(
     target_json: str | None = None,
     solver_preference: str = "cadical",
     solver_budget_sec: int = 300,
+    hybrid_ga_policy: HybridGAPolicy | None = None,
 ) -> PaperWorkflowInput:
     """Resolve CLI/free-form inputs into the paper-facing workflow input contract."""
     if target_json:
@@ -75,6 +79,8 @@ def _build_paper_workflow_input_impl(
                 **payload,
             }
             workflow = PaperWorkflowInput.model_validate(merged)
+            if hybrid_ga_policy is not None:
+                workflow = workflow.model_copy(update={"hybrid_ga_policy": hybrid_ga_policy})
             if workflow.target is None and len(workflow.targets) == 1:
                 workflow = workflow.model_copy(update={"target": workflow.targets[0]})
             return workflow
@@ -86,6 +92,7 @@ def _build_paper_workflow_input_impl(
             targets=targets,
             codetables_query=_default_codetables_query(target),
             solver_budget_sec=solver_budget_sec,
+            hybrid_ga_policy=hybrid_ga_policy,
         )
 
     claim_ids = expand_reviewer_claim_ids(paper_claim_id) if paper_claim_id else []
@@ -115,6 +122,7 @@ def _build_paper_workflow_input_impl(
         solver_budget_sec=solver_budget_sec,
         population_state=None,
         verifier_state=None,
+        hybrid_ga_policy=hybrid_ga_policy,
     )
 
 
@@ -126,6 +134,7 @@ def build_paper_workflow_input(
     target_json: str | None = None,
     solver_preference: str = "cadical",
     solver_budget_sec: int = 300,
+    hybrid_ga_policy: HybridGAPolicy | None = None,
 ) -> PaperWorkflowInput:
     return _build_paper_workflow_input_impl(
         goal=goal,
@@ -133,6 +142,7 @@ def build_paper_workflow_input(
         target_json=target_json,
         solver_preference=solver_preference,
         solver_budget_sec=solver_budget_sec,
+        hybrid_ga_policy=hybrid_ga_policy,
     )
 
 
@@ -143,6 +153,8 @@ class AgentState(TypedDict, total=False):
     evidence: list[EvidenceItem]
     paper_input: PaperWorkflowInput
     verifier_diagnostics: list[VerifierDiagnostics]
+    evolver_action: EvolverAction
+    hybrid_ga_reports: list[HybridGAReport]
     reflector_action: ReflectorAction
     paper_output: PaperWorkflowOutput
     next_instruction: str | None
@@ -367,9 +379,19 @@ def _ternary_bch_payload_evidence(payload: dict[str, Any], *, report_path: Path)
 
 def _paper_claim_payload_evidence(payload: dict[str, Any], *, report_path: Path | None = None) -> EvidenceItem:
     verdict = str(payload.get("verdict") or "UNKNOWN")
-    claim_id = str(payload.get("result_id") or "unknown")
-    status = "OK" if verdict == "PASS" else "ERROR" if verdict == "FAIL" else "UNAVAILABLE" if verdict == "INSUFFICIENT_ARTIFACT" else "UNKNOWN"
-    family = payload.get("claim_family") or "self_orthogonal"
+    claim_id = str(payload.get("result_id") or payload.get("claim_id") or "unknown")
+    status = (
+        "OK"
+        if verdict == "PASS"
+        else "ERROR"
+        if verdict == "FAIL"
+        else "UNAVAILABLE"
+        if verdict == "INSUFFICIENT_ARTIFACT"
+        else "SKIPPED"
+        if verdict == "SKIPPED"
+        else "UNKNOWN"
+    )
+    family = payload.get("claim_family") or ("hybrid_sat_ga" if claim_id in HYBRID_CLAIM_IDS else "self_orthogonal")
     matrix = payload.get("matrix_verification") if isinstance(payload.get("matrix_verification"), dict) else {}
     diagnostics = payload.get("diagnostics") if isinstance(payload.get("diagnostics"), dict) else {}
     checks = diagnostics.get("checks") if isinstance(diagnostics.get("checks"), dict) else {}
@@ -384,6 +406,12 @@ def _paper_claim_payload_evidence(payload: dict[str, Any], *, report_path: Path 
     source_artifacts = payload.get("source_artifacts") if isinstance(payload.get("source_artifacts"), list) else []
     first_source_artifact = source_artifacts[0] if source_artifacts and isinstance(source_artifacts[0], dict) else {}
     binary_artifact = payload.get("artifact") if isinstance(payload.get("artifact"), dict) else {}
+    final_diagnostics = payload.get("final_diagnostics") if isinstance(payload.get("final_diagnostics"), dict) else {}
+    generation_summaries = payload.get("generation_summaries") if isinstance(payload.get("generation_summaries"), list) else []
+    latest_generation = generation_summaries[-1] if generation_summaries and isinstance(generation_summaries[-1], dict) else {}
+    repair_events = payload.get("repair_events") if isinstance(payload.get("repair_events"), list) else []
+    seed_bank = payload.get("seed_bank") if isinstance(payload.get("seed_bank"), dict) else {}
+    frontier_solver_runs = payload.get("frontier_solver_runs") if isinstance(payload.get("frontier_solver_runs"), list) else []
     details = {
         "result_id": claim_id,
         "claim_family": family,
@@ -417,6 +445,19 @@ def _paper_claim_payload_evidence(payload: dict[str, Any], *, report_path: Path 
         "binary_best_A_d": payload.get("best_A_d"),
         "binary_bklc_A_d": payload.get("bklc_A_d"),
         "binary_reduction_percent": payload.get("reduction_percent"),
+        "hybrid_ga_mode": payload.get("mode"),
+        "hybrid_ga_seed_status": payload.get("seed_status"),
+        "hybrid_ga_generation_count": len(generation_summaries),
+        "hybrid_ga_repair_count": len(repair_events),
+        "hybrid_ga_seed_count": seed_bank.get("seed_count"),
+        "hybrid_ga_frontier_solver_run_count": len(frontier_solver_runs),
+        "hybrid_ga_best_d_min": final_diagnostics.get("minimum_distance", latest_generation.get("best_d_min")),
+        "hybrid_ga_best_A_d": final_diagnostics.get("A_d", latest_generation.get("best_A_d")),
+        "hybrid_ga_weight_distribution": final_diagnostics.get("weight_distribution"),
+        "hybrid_ga_rank": final_diagnostics.get("rank"),
+        "hybrid_ga_diversity": latest_generation.get("diversity"),
+        "hybrid_ga_elapsed_ms": final_diagnostics.get("total_elapsed_ms") or final_diagnostics.get("elapsed_ms"),
+        "hybrid_ga_report": payload,
         "cnf_path": cnf.get("cnf_path"),
         "cnf_resolved_path": cnf.get("cnf_resolved_path"),
         "cnf_sha256": _safe_file_hash(cnf.get("cnf_path")),
@@ -452,7 +493,20 @@ def _paper_claim_payload_evidence(payload: dict[str, Any], *, report_path: Path 
         "artifact_sha256": binary_artifact.get("sha256") or first_source_artifact.get("sha256"),
         "elapsed_ms": payload.get("elapsed_ms"),
     }
-    if family == "lucas_cubes":
+    if family == "hybrid_sat_ga":
+        summary_bits = [
+            f"verdict={verdict}",
+            "family=hybrid_sat_ga",
+            f"mode={payload.get('mode')}",
+            f"seed_status={payload.get('seed_status')}",
+            f"d_min={details.get('hybrid_ga_best_d_min')}",
+            f"A_d={details.get('hybrid_ga_best_A_d')}",
+            f"generations={len(generation_summaries)}",
+            f"repairs={len(repair_events)}",
+            f"seeds={seed_bank.get('seed_count')}" if seed_bank else "",
+            f"missing={','.join(missing_obligations)}" if missing_obligations else "",
+        ]
+    elif family == "lucas_cubes":
         params = payload.get("parameters") if isinstance(payload.get("parameters"), dict) else {}
         summary_bits = [
             f"verdict={verdict}",
@@ -493,12 +547,19 @@ def _paper_claim_payload_evidence(payload: dict[str, Any], *, report_path: Path 
     return EvidenceItem(
         name=f"paper_claim_{claim_id}",
         status=status,
-        command_or_function=f"reproduce_paper_claim({claim_id})",
+        command_or_function=f"reproduce_paper_claim({claim_id})" if family != "hybrid_sat_ga" else f"run_hybrid_ga({claim_id})",
         summary="; ".join(bit for bit in summary_bits if bit),
         artifacts=[
             str(path)
             for path in (
-                [report_path or payload.get("report_path"), cnf.get("cnf_path"), optimality_cnf.get("cnf_path"), payload.get("artifact_path"), binary_artifact.get("path")]
+                [
+                    report_path or payload.get("report_path"),
+                    cnf.get("cnf_path"),
+                    optimality_cnf.get("cnf_path"),
+                    payload.get("artifact_path"),
+                    binary_artifact.get("path"),
+                    *(payload.get("artifact_paths") or []),
+                ]
                 + [item.get("path") for item in source_artifacts if isinstance(item, dict)]
             )
             if path
@@ -515,6 +576,7 @@ def _run_paper_claim_evidence(
     artifact_dir: str | Path | None,
     cadical_path: str | None,
     timeout: int,
+    hybrid_ga_policy: HybridGAPolicy | None = None,
 ) -> EvidenceItem | None:
     if not paper_claim_id:
         return _ternary_bch_report_evidence(artifact_dir)
@@ -537,6 +599,7 @@ def _run_paper_claim_evidence(
         cadical_path=cadical_path,
         timeout=timeout,
         prove_optimality=True,
+        hybrid_ga_policy=hybrid_ga_policy,
     )
     return _paper_claim_payload_evidence(
         {
@@ -556,6 +619,7 @@ def _run_paper_claim_evidence_items(
     artifact_dir: str | Path | None,
     cadical_path: str | None,
     timeout: int,
+    hybrid_ga_policy: HybridGAPolicy | None = None,
 ) -> list[EvidenceItem]:
     try:
         expanded = expand_reviewer_claim_ids(paper_claim_id)
@@ -576,6 +640,7 @@ def _run_paper_claim_evidence_items(
         cadical_path=cadical_path,
         timeout=timeout,
         prove_optimality=True,
+        hybrid_ga_policy=hybrid_ga_policy,
     )
     reports = summary.get("reports") if isinstance(summary.get("reports"), list) else []
     items = [
@@ -650,6 +715,7 @@ def run_repro_checks(
     paper_claim_id: str | None = None,
     cadical_path: str | None = None,
     paper_claim_timeout: int = 1200,
+    hybrid_ga_policy: HybridGAPolicy | None = None,
 ) -> list[EvidenceItem]:
     manifest_path = _repo_manifest_path(artifact_dir)
     root = Path(repo_root) if repo_root is not None else ROOT_DIR
@@ -674,20 +740,62 @@ def run_repro_checks(
         ),
     ]
     if paper_claim_id:
-        evidence.extend(
-            _run_paper_claim_evidence_items(
-                paper_claim_id=paper_claim_id,
-                artifact_dir=artifact_dir,
-                cadical_path=cadical_path,
-                timeout=paper_claim_timeout,
+        try:
+            expanded_for_repro = expand_reviewer_claim_ids(paper_claim_id)
+        except KeyError:
+            expanded_for_repro = []
+        hybrid_claims = [claim for claim in expanded_for_repro if claim in HYBRID_CLAIM_IDS]
+        if hybrid_claims:
+            evidence.append(
+                EvidenceItem(
+                    name="hybrid_ga_branch",
+                    status="OK" if hybrid_ga_policy and hybrid_ga_policy.enabled else "SKIPPED",
+                    command_or_function="coordinator.hybrid_ga_gate",
+                    summary=(
+                        f"hybrid_ga_mode={hybrid_ga_policy.mode}; claims={','.join(hybrid_claims)}; "
+                        "waiting for EvolverAction(method=hybrid_sat_ga)"
+                        if hybrid_ga_policy
+                        else "Hybrid SAT-GA claim selected, but branch is disabled."
+                    ),
+                    artifacts=[],
+                    error=None if hybrid_ga_policy and hybrid_ga_policy.enabled else "Hybrid SAT-GA branch disabled by CLI.",
+                    details={
+                        **(hybrid_ga_policy.model_dump(mode="python") if hybrid_ga_policy else {"mode": "off"}),
+                        "claim_ids": hybrid_claims,
+                    },
+                )
             )
-        )
+            non_hybrid_claims = [claim for claim in expanded_for_repro if claim not in HYBRID_CLAIM_IDS]
+            if non_hybrid_claims:
+                # Current public groups do not mix Hybrid SAT-GA with other registered claims.
+                # Keep this branch explicit so future mixed groups do not silently skip proof work.
+                evidence.append(
+                    EvidenceItem(
+                        name="hybrid_ga_mixed_group",
+                        status="UNAVAILABLE",
+                        command_or_function="run_repro_checks",
+                        summary="Mixed Hybrid SAT-GA and non-hybrid reviewer groups are not registered in this graph path.",
+                        artifacts=[],
+                        error="Unsupported mixed claim group.",
+                    )
+                )
+        else:
+            evidence.extend(
+                _run_paper_claim_evidence_items(
+                    paper_claim_id=paper_claim_id,
+                    artifact_dir=artifact_dir,
+                    cadical_path=cadical_path,
+                    timeout=paper_claim_timeout,
+                    hybrid_ga_policy=hybrid_ga_policy,
+                )
+            )
     else:
         report_evidence = _run_paper_claim_evidence(
             paper_claim_id=paper_claim_id,
             artifact_dir=artifact_dir,
             cadical_path=cadical_path,
             timeout=paper_claim_timeout,
+            hybrid_ga_policy=hybrid_ga_policy,
         )
         if report_evidence is not None:
             evidence.append(report_evidence)
@@ -799,9 +907,15 @@ def _paper_claim_execution_summary(evidence: list[EvidenceItem]) -> dict[str, An
                 "source_parameters": details.get("source_parameters"),
                 "extended_parameters": details.get("extended_parameters"),
                 "target_minimum_distance": details.get("target_minimum_distance"),
-                "minimum_distance": details.get("matrix_minimum_distance") or details.get("binary_minimum_distance") or details.get("minimum_distance"),
+                "minimum_distance": details.get("matrix_minimum_distance")
+                or details.get("binary_minimum_distance")
+                or details.get("hybrid_ga_best_d_min")
+                or details.get("minimum_distance"),
                 "matrix_ok": details.get("matrix_ok"),
-                "weight_distribution": details.get("matrix_weight_distribution") or details.get("binary_weight_distribution") or details.get("weight_distribution"),
+                "weight_distribution": details.get("matrix_weight_distribution")
+                or details.get("binary_weight_distribution")
+                or details.get("hybrid_ga_weight_distribution")
+                or details.get("weight_distribution"),
                 "lucas_vertex_count": details.get("lucas_vertex_count"),
                 "lucas_expected_vertex_count": details.get("lucas_expected_vertex_count"),
                 "lucas_center_count": details.get("lucas_center_count"),
@@ -814,6 +928,15 @@ def _paper_claim_execution_summary(evidence: list[EvidenceItem]) -> dict[str, An
                 "binary_best_A_d": details.get("binary_best_A_d"),
                 "binary_bklc_A_d": details.get("binary_bklc_A_d"),
                 "binary_reduction_percent": details.get("binary_reduction_percent"),
+                "hybrid_ga_mode": details.get("hybrid_ga_mode"),
+                "hybrid_ga_seed_status": details.get("hybrid_ga_seed_status"),
+                "hybrid_ga_generation_count": details.get("hybrid_ga_generation_count"),
+                "hybrid_ga_repair_count": details.get("hybrid_ga_repair_count"),
+                "hybrid_ga_best_d_min": details.get("hybrid_ga_best_d_min"),
+                "hybrid_ga_best_A_d": details.get("hybrid_ga_best_A_d"),
+                "hybrid_ga_rank": details.get("hybrid_ga_rank"),
+                "hybrid_ga_diversity": details.get("hybrid_ga_diversity"),
+                "hybrid_ga_elapsed_ms": details.get("hybrid_ga_elapsed_ms"),
                 "grassl_bound": details.get("grassl_bound"),
                 "cnf_path": details.get("cnf_path"),
                 "cnf_variables": details.get("cnf_variables"),
@@ -893,6 +1016,22 @@ def _missing_obligations(evidence: list[EvidenceItem]) -> list[str]:
     return missing
 
 
+def _hybrid_reports_from_evidence(evidence: list[EvidenceItem]) -> list[HybridGAReport]:
+    reports: list[HybridGAReport] = []
+    for item in evidence:
+        details = item.details or {}
+        if details.get("claim_family") != "hybrid_sat_ga":
+            continue
+        report = details.get("hybrid_ga_report")
+        if not isinstance(report, dict):
+            continue
+        try:
+            reports.append(HybridGAReport.model_validate(report))
+        except ValidationError:
+            continue
+    return reports
+
+
 def _codetables_results(evidence: list[EvidenceItem]) -> list[CodetablesLookupResult]:
     results: list[CodetablesLookupResult] = []
     for item in evidence:
@@ -929,6 +1068,32 @@ def _solver_runs_from_evidence(evidence: list[EvidenceItem]) -> list[dict[str, A
         details = item.details or {}
         claim_id = details.get("result_id")
         if not claim_id or claim_id == "all_so_table":
+            continue
+        if details.get("claim_family") == "hybrid_sat_ga":
+            report = details.get("hybrid_ga_report") if isinstance(details.get("hybrid_ga_report"), dict) else {}
+            for run in (report.get("solver_runs") or []) + (report.get("frontier_solver_runs") or []):
+                runs.append(
+                    {
+                        key: value
+                        for key, value in {
+                            "claim_id": claim_id,
+                            "obligation": run.get("obligation") or "hybrid_ga_sat_repair",
+                            "solver": run.get("solver") or "cadical",
+                            "status": run.get("status"),
+                            "command": run.get("command"),
+                            "argv": run.get("argv"),
+                            "cwd": run.get("cwd"),
+                            "solver_path": run.get("solver_path"),
+                            "returncode": run.get("returncode"),
+                            "elapsed_ms": run.get("elapsed_ms"),
+                            "timeout_sec": run.get("timeout_sec"),
+                            "memory_mb": run.get("memory_mb"),
+                            "cnf_path": run.get("cnf_path"),
+                            "cnf_sha256": run.get("cnf_sha256"),
+                        }.items()
+                        if value is not None
+                    }
+                )
             continue
         for prefix, obligation_name in (
             ("", f"{claim_id}:d>={details.get('target_minimum_distance')}"),
@@ -974,6 +1139,7 @@ def _verifier_diagnostics_from_evidence(evidence: list[EvidenceItem]) -> list[Ve
         d_min = (
             details.get("matrix_minimum_distance")
             or details.get("binary_minimum_distance")
+            or details.get("hybrid_ga_best_d_min")
             or details.get("lucas_minimum_pairwise_distance")
             or details.get("minimum_distance")
         )
@@ -996,18 +1162,21 @@ def _verifier_diagnostics_from_evidence(evidence: list[EvidenceItem]) -> list[Ve
         diagnostics.append(
             VerifierDiagnostics(
                 claim_id=claim_id,
-                rank=details.get("gram_rank"),
+                rank=details.get("gram_rank") or details.get("hybrid_ga_rank"),
                 self_orthogonal=details.get("matrix_self_orthogonal"),
                 d_min=d_min,
                 weight_distribution=details.get("matrix_weight_distribution")
                 or details.get("binary_weight_distribution")
+                or details.get("hybrid_ga_weight_distribution")
                 or details.get("lucas_ball_size_distribution")
                 or details.get("weight_distribution"),
                 low_weight_count=low_weight_count,
                 solver_status=details.get("solver_status"),
-                elapsed_ms=details.get("solver_elapsed_ms") or details.get("elapsed_ms"),
+                elapsed_ms=details.get("solver_elapsed_ms") or details.get("hybrid_ga_elapsed_ms") or details.get("elapsed_ms"),
                 memory_mb=details.get("solver_memory_mb"),
                 artifact_hashes=hashes,
+                diversity=details.get("hybrid_ga_diversity"),
+                repair_count=details.get("hybrid_ga_repair_count"),
             )
         )
     return diagnostics
@@ -1022,6 +1191,7 @@ def build_paper_workflow_output(
     artifact_path: str | None = None,
 ) -> PaperWorkflowOutput:
     diagnostics = _verifier_diagnostics_from_evidence(evidence)
+    hybrid_reports = _hybrid_reports_from_evidence(evidence)
     missing_obligations = _missing_obligations(evidence)
     artifact_paths = [path for item in evidence for path in item.artifacts]
     if artifact_path:
@@ -1032,6 +1202,7 @@ def build_paper_workflow_output(
         codetables_results=_codetables_results(evidence),
         solver_runs=_solver_runs_from_evidence(evidence),
         diagnostics=diagnostics,
+        hybrid_ga_reports=hybrid_reports,
         reflector_action=decision.reflector_action,
         decision=decision.model_dump(mode="python"),
         verdict=decision.verdict,
@@ -1066,6 +1237,7 @@ def _build_run_summary(
     workflow_elapsed_ms = _elapsed_ms(summary_context.get("workflow_started_at"))
     graph_elapsed_ms = _elapsed_ms(summary_context.get("graph_started_at"))
     paper_output_solver_runs = paper_output.solver_runs if paper_output else []
+    hybrid_ga_reports = paper_output.hybrid_ga_reports if paper_output else []
     paper_output_solver_run_count = len(paper_output_solver_runs)
     paper_output_solver_elapsed_ms = round(
         sum(float(run.get("elapsed_ms") or 0.0) for run in paper_output_solver_runs),
@@ -1131,6 +1303,7 @@ def _build_run_summary(
             for ref in codetables_refs
         ]
     if paper_output:
+        first_hybrid = hybrid_ga_reports[0] if hybrid_ga_reports else None
         metadata.update(
             {
                 "paper_output_verdict": paper_output.verdict,
@@ -1140,6 +1313,19 @@ def _build_run_summary(
                 "paper_output_missing_obligations": paper_output.missing_obligations or None,
                 "reflector_action": paper_output.reflector_action.model_dump(mode="python")
                 if paper_output.reflector_action
+                else None,
+                "hybrid_ga_mode": first_hybrid.mode if first_hybrid else None,
+                "hybrid_ga_verdict": first_hybrid.verdict if first_hybrid else None,
+                "hybrid_ga_generation_count": len(first_hybrid.generation_summaries) if first_hybrid else None,
+                "hybrid_ga_repair_count": len(first_hybrid.repair_events) if first_hybrid else None,
+                "hybrid_ga_seed_count": (first_hybrid.seed_bank or {}).get("seed_count") if first_hybrid else None,
+                "hybrid_ga_frontier_solver_run_count": len(first_hybrid.frontier_solver_runs) if first_hybrid else None,
+                "hybrid_ga_solver_elapsed_ms": sum(
+                    float(run.get("elapsed_ms") or 0.0)
+                    for report in hybrid_ga_reports
+                    for run in list(report.solver_runs) + list(report.frontier_solver_runs)
+                )
+                if hybrid_ga_reports
                 else None,
             }
         )
@@ -1162,6 +1348,7 @@ def _build_run_summary(
         "evidence_used": decision.evidence_used,
         "paper_input": paper_input.model_dump(mode="python") if paper_input else None,
         "paper_output": paper_output.model_dump(mode="python") if paper_output else None,
+        "hybrid_ga_reports": [report.model_dump(mode="python") for report in hybrid_ga_reports],
         "verifier_diagnostics": [
             diagnostic.model_dump(mode="python") for diagnostic in state.get("verifier_diagnostics", [])
         ],
@@ -1222,6 +1409,7 @@ def _repro_check_node(
     paper_claim_id: str | None,
     cadical_path: str | None,
     paper_claim_timeout: int,
+    hybrid_ga_policy: HybridGAPolicy | None,
 ):
     def node(state: AgentState) -> AgentState:
         prior_evidence = _coerce_evidence_items(state.get("evidence", []))
@@ -1233,6 +1421,7 @@ def _repro_check_node(
                 paper_claim_id=paper_claim_id,
                 cadical_path=cadical_path,
                 paper_claim_timeout=paper_claim_timeout,
+                hybrid_ga_policy=hybrid_ga_policy,
             )
         )
         evidence = prior_evidence + evidence
@@ -1253,6 +1442,7 @@ def _paper_input_node(
     target_json: str | None,
     solver_preference: str,
     paper_claim_timeout: int,
+    hybrid_ga_policy: HybridGAPolicy | None,
 ):
     def node(state: AgentState) -> AgentState:
         paper_input = build_paper_workflow_input(
@@ -1261,6 +1451,7 @@ def _paper_input_node(
             target_json=target_json,
             solver_preference=solver_preference,
             solver_budget_sec=paper_claim_timeout,
+            hybrid_ga_policy=hybrid_ga_policy,
         )
         evidence = _coerce_evidence_items(state.get("evidence", []))
         evidence.append(
@@ -1346,6 +1537,7 @@ def _evolver_action_node(
     cadical_path: str | None,
     paper_claim_id: str | None,
     paper_claim_timeout: int,
+    hybrid_ga_policy: HybridGAPolicy | None,
 ):
     def node(state: AgentState) -> AgentState:
         messages = state.get("messages", [])
@@ -1373,6 +1565,7 @@ def _evolver_action_node(
             }
 
         target_claim = action.claim_id or paper_claim_id
+        executable_action: EvolverAction | None = action
         new_items: list[EvidenceItem] = [
             EvidenceItem(
                 name="evolver_action",
@@ -1421,25 +1614,78 @@ def _evolver_action_node(
                     )
                 )
         elif action.action == "construction_search":
-            new_items.append(
-                EvidenceItem(
-                    name="construction_search_request",
-                    status="UNAVAILABLE",
-                    command_or_function="coordinator.construction_search",
-                    summary=(
-                        "Construction search was requested, but no deterministic Lucas n=15 center-set "
-                        "construction backend is registered yet. Public center-set artifacts remain required."
-                    ),
-                    artifacts=[],
-                    error="Missing deterministic construction-search backend.",
-                    details={
-                        "action": action.action,
-                        "claim_id": target_claim,
-                        "timeout_sec": action.timeout_sec or paper_claim_timeout,
-                        "supported_now": False,
-                    },
+            if action.method == "hybrid_sat_ga":
+                if target_claim not in HYBRID_CLAIM_IDS:
+                    new_items.append(
+                        EvidenceItem(
+                            name="hybrid_ga_action_invalid",
+                            status="ERROR",
+                            command_or_function="coordinator.hybrid_ga_gate",
+                            summary=f"Hybrid SAT-GA is only registered for {sorted(HYBRID_CLAIM_IDS)}.",
+                            artifacts=[],
+                            error=f"Unsupported hybrid target: {target_claim}",
+                            details=action.model_dump(),
+                        )
+                    )
+                    executable_action = None
+                elif not hybrid_ga_policy or not hybrid_ga_policy.enabled:
+                    new_items.append(
+                        EvidenceItem(
+                            name="hybrid_ga_action_invalid",
+                            status="ERROR",
+                            command_or_function="coordinator.hybrid_ga_gate",
+                            summary="Evolver requested Hybrid SAT-GA, but the CLI branch is disabled.",
+                            artifacts=[],
+                            error="Run with --hybrid-ga-mode archived|replay|frontier_repair|live.",
+                            details=action.model_dump(),
+                        )
+                    )
+                    executable_action = None
+                elif action.mode is not None and action.mode != hybrid_ga_policy.mode:
+                    new_items.append(
+                        EvidenceItem(
+                            name="hybrid_ga_action_invalid",
+                            status="ERROR",
+                            command_or_function="coordinator.hybrid_ga_gate",
+                            summary="Evolver requested a Hybrid SAT-GA mode that does not match the CLI policy.",
+                            artifacts=[],
+                            error=f"Requested mode {action.mode}; CLI policy mode is {hybrid_ga_policy.mode}.",
+                            details={**action.model_dump(), "policy": hybrid_ga_policy.model_dump(mode="python")},
+                        )
+                    )
+                    executable_action = None
+                else:
+                    new_items.append(
+                        EvidenceItem(
+                            name="hybrid_ga_action_valid",
+                            status="OK",
+                            command_or_function="coordinator.hybrid_ga_gate",
+                            summary=f"Hybrid SAT-GA action accepted; mode={action.mode or hybrid_ga_policy.mode}.",
+                            artifacts=[],
+                            error=None,
+                            details={**action.model_dump(), "policy": hybrid_ga_policy.model_dump(mode="python")},
+                        )
+                    )
+            else:
+                new_items.append(
+                    EvidenceItem(
+                        name="construction_search_request",
+                        status="UNAVAILABLE",
+                        command_or_function="coordinator.construction_search",
+                        summary=(
+                            "Construction search was requested, but no deterministic Lucas n=15 center-set "
+                            "construction backend is registered yet. Public center-set artifacts remain required."
+                        ),
+                        artifacts=[],
+                        error="Missing deterministic construction-search backend.",
+                        details={
+                            "action": action.action,
+                            "claim_id": target_claim,
+                            "timeout_sec": action.timeout_sec or paper_claim_timeout,
+                            "supported_now": False,
+                        },
+                    )
                 )
-            )
         elif action.action == "propose_repair":
             new_items.append(
                 EvidenceItem(
@@ -1456,7 +1702,88 @@ def _evolver_action_node(
             pass
 
         evidence.extend(new_items)
-        return {**state, "evidence": evidence, "next_instruction": action.reason}
+        if executable_action is None:
+            next_state: AgentState = {
+                **state,
+                "evidence": evidence,
+                "next_instruction": "Repair the Evolver action so it matches the CLI-owned Hybrid GA policy.",
+            }
+            next_state.pop("evolver_action", None)
+            return next_state
+        return {**state, "evidence": evidence, "next_instruction": action.reason, "evolver_action": executable_action}
+
+    return node
+
+
+@traceable_run("solevolve.hybrid_ga", run_type="chain")
+def _run_hybrid_ga_report(
+    *,
+    action: EvolverAction,
+    policy: HybridGAPolicy,
+    artifact_dir: str | Path | None,
+    cadical_path: str | None,
+) -> dict[str, Any]:
+    if action.mode is not None and action.mode != policy.mode:
+        raise ValueError(f"Hybrid SAT-GA action mode {action.mode} does not match CLI policy mode {policy.mode}.")
+    return run_hybrid_ga(
+        policy=policy,
+        artifact_dir=artifact_dir or ROOT_DIR / "artifacts",
+        cadical_path=cadical_path,
+        claim_id=action.claim_id or HYBRID_CLAIM_ID,
+    )
+
+
+def _hybrid_ga_node(
+    *,
+    artifact_dir: str | Path | None,
+    cadical_path: str | None,
+    hybrid_ga_policy: HybridGAPolicy | None,
+):
+    def node(state: AgentState) -> AgentState:
+        evidence = _coerce_evidence_items(state.get("evidence", []))
+        action = state.get("evolver_action")
+        if not isinstance(action, EvolverAction):
+            evidence.append(
+                EvidenceItem(
+                    name="hybrid_ga_action_invalid",
+                    status="ERROR",
+                    command_or_function="coordinator.hybrid_ga_node",
+                    summary="Hybrid SAT-GA branch reached without a validated EvolverAction.",
+                    artifacts=[],
+                    error="Missing validated EvolverAction.",
+                )
+            )
+            return {**state, "evidence": evidence, "next_instruction": "Repair the missing Hybrid SAT-GA action."}
+        if not hybrid_ga_policy or not hybrid_ga_policy.enabled:
+            evidence.append(
+                EvidenceItem(
+                    name="hybrid_ga_action_invalid",
+                    status="ERROR",
+                    command_or_function="coordinator.hybrid_ga_node",
+                    summary="Hybrid SAT-GA branch reached while disabled.",
+                    artifacts=[],
+                    error="Run with --hybrid-ga-mode archived|replay|frontier_repair|live.",
+                    details=action.model_dump(),
+                )
+            )
+            return {**state, "evidence": evidence, "next_instruction": "Enable Hybrid SAT-GA or choose a non-hybrid action."}
+        report_payload = _run_hybrid_ga_report(
+            action=action,
+            policy=hybrid_ga_policy,
+            artifact_dir=artifact_dir,
+            cadical_path=cadical_path,
+        )
+        report = HybridGAReport.model_validate(report_payload)
+        evidence_item = _paper_claim_payload_evidence(report.model_dump(mode="python"))
+        evidence.append(evidence_item)
+        reports = list(state.get("hybrid_ga_reports", []))
+        reports.append(report)
+        return {
+            **state,
+            "evidence": evidence,
+            "hybrid_ga_reports": reports,
+            "next_instruction": f"Hybrid SAT-GA completed with verdict={report.verdict}. Verify the deterministic diagnostics.",
+        }
 
     return node
 
@@ -1511,6 +1838,26 @@ def _route_before_agent(max_turns: int, next_node: str):
     return route
 
 
+def _route_after_evolver_action(max_turns: int, hybrid_ga_policy: HybridGAPolicy | None):
+    def route(state: AgentState) -> Literal["hybrid_ga", "verifier", "finalize"]:
+        if state["turn"] >= max_turns:
+            return "finalize"
+        action = state.get("evolver_action")
+        if (
+            isinstance(action, EvolverAction)
+            and action.action == "construction_search"
+            and action.method == "hybrid_sat_ga"
+            and (action.claim_id or HYBRID_CLAIM_ID) in HYBRID_CLAIM_IDS
+            and hybrid_ga_policy is not None
+            and hybrid_ga_policy.enabled
+            and (action.mode is None or action.mode == hybrid_ga_policy.mode)
+        ):
+            return "hybrid_ga"
+        return "verifier"
+
+    return route
+
+
 def _decision_from_text(content: str, evidence: list[EvidenceItem] | None = None) -> CoordinatorDecision:
     payload = _json_object_from_text(content)
     if isinstance(payload, dict):
@@ -1541,6 +1888,15 @@ def _metrics_from_evidence(evidence: list[EvidenceItem]) -> ReflectorMetrics:
     for item in evidence:
         details = item.details or {}
         if item.name.startswith("paper_claim_"):
+            if details.get("claim_family") == "hybrid_sat_ga":
+                metrics["target_parameters"] = "binary [22,11,7] Hybrid SAT-GA public witness"
+                metrics["d_min"] = details.get("hybrid_ga_best_d_min")
+                metrics["weight_distribution"] = details.get("hybrid_ga_weight_distribution")
+                metrics["rank"] = details.get("hybrid_ga_rank")
+                metrics["diversity"] = details.get("hybrid_ga_diversity")
+                metrics["stagnation_length"] = 0
+                if details.get("hybrid_ga_repair_count") is not None:
+                    metrics["best_candidate_id"] = HYBRID_CLAIM_ID
             if details.get("claim_family") == "lucas_cubes":
                 params = details.get("parameters") if isinstance(details.get("parameters"), dict) else {}
                 metrics["target_parameters"] = (
@@ -1764,7 +2120,21 @@ def _coordinator_finalize_node(
                     evidence=evidence,
                 )
         decision = _normalize_decision_evidence_used(decision, evidence)
-        if state.get("turn", 0) >= max_turns and decision.decision == "continue":
+        if _claim_obligations_satisfied(evidence) and not _missing_obligations(evidence):
+            decision = decision.model_copy(
+                update={
+                    "decision": "stop",
+                    "mode": "finalize",
+                    "verdict": "PASS",
+                    "reason": (
+                        f"{decision.reason} Coordinator finalized PASS because all deterministic "
+                        "claim obligations are satisfied."
+                    ),
+                    "next_instruction": "",
+                }
+            )
+            decision = _normalize_decision_evidence_used(decision, evidence)
+        elif state.get("turn", 0) >= max_turns and decision.decision == "continue":
             decision = fallback_coordinator_decision(
                 reason=f"Stopped after reaching max_turns={max_turns}.",
                 evidence=evidence,
@@ -1817,6 +2187,7 @@ def build_sol_evolve_network(
     target_json: str | None = None,
     cadical_path: str | None = None,
     paper_claim_timeout: int = 1200,
+    hybrid_ga_policy: HybridGAPolicy | None = None,
     summary_context: dict[str, Any] | None = None,
 ):
     """Construct a LangGraph Deep Agents network for SolEvolve roles."""
@@ -1829,6 +2200,7 @@ def build_sol_evolve_network(
             target_json=target_json,
             solver_preference=solver_preference,
             paper_claim_timeout=paper_claim_timeout,
+            hybrid_ga_policy=hybrid_ga_policy,
         ),
     )
     graph.add_node(
@@ -1840,6 +2212,7 @@ def build_sol_evolve_network(
             paper_claim_id=paper_claim_id,
             cadical_path=cadical_path,
             paper_claim_timeout=paper_claim_timeout,
+            hybrid_ga_policy=hybrid_ga_policy,
         ),
     )
     graph.add_node("generator", _agent_node(generator))
@@ -1851,6 +2224,15 @@ def build_sol_evolve_network(
             cadical_path=cadical_path,
             paper_claim_id=paper_claim_id,
             paper_claim_timeout=paper_claim_timeout,
+            hybrid_ga_policy=hybrid_ga_policy,
+        ),
+    )
+    graph.add_node(
+        "hybrid_ga",
+        _hybrid_ga_node(
+            artifact_dir=artifact_dir,
+            cadical_path=cadical_path,
+            hybrid_ga_policy=hybrid_ga_policy,
         ),
     )
     graph.add_node("verifier", _agent_node(verifier))
@@ -1878,6 +2260,11 @@ def build_sol_evolve_network(
     graph.add_edge("evolver", "evolver_action")
     graph.add_conditional_edges(
         "evolver_action",
+        _route_after_evolver_action(max_turns, hybrid_ga_policy),
+        {"hybrid_ga": "hybrid_ga", "verifier": "verifier", "finalize": "coordinator_finalize"},
+    )
+    graph.add_conditional_edges(
+        "hybrid_ga",
         _route_before_agent(max_turns, "verifier"),
         {"verifier": "verifier", "finalize": "coordinator_finalize"},
     )

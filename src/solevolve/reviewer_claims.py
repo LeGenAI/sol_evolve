@@ -8,7 +8,8 @@ from typing import Any
 from .binary_repro import reproduce_binary_ad_43_10_16
 from .claim_registry import expand_claim_ids as expand_so_claim_ids
 from .claim_registry import get_claim
-from .contracts import LucasTarget, PaperTarget
+from .contracts import HybridGAPolicy, LucasTarget, PaperTarget
+from .hybrid_ga import HYBRID_CLAIM_ID, run_hybrid_ga
 from .lucas_repro import LUCAS_CLAIMS, reproduce_lucas_claim
 from .so_claim_repro import reproduce_paper_claim
 from .tracing import traceable_run
@@ -16,11 +17,15 @@ from .tracing import traceable_run
 SO_CLAIM_IDS = ["ternary_bch_d9", "gf4_hermitian_10_5_d6", "gf5_so_12_6_d8"]
 LUCAS_CLAIM_IDS = ["lucas_l7_s4", "lucas_l15_s12", "lucas_l15_s11"]
 BINARY_CLAIM_IDS = ["binary_ad_43_10_16"]
+HYBRID_GA_CLAIM_IDS = [HYBRID_CLAIM_ID]
 
 REVIEWER_CLAIM_GROUPS: dict[str, list[str]] = {
     "all_so_table": SO_CLAIM_IDS,
     "lucas_cubes": LUCAS_CLAIM_IDS,
     "binary_ad_43_10_16": BINARY_CLAIM_IDS,
+    HYBRID_CLAIM_ID: [HYBRID_CLAIM_ID],
+    "hybrid_sat_ga": [HYBRID_CLAIM_ID],
+    "all_hybrid_ga": HYBRID_GA_CLAIM_IDS,
     "all_reviewer_core": SO_CLAIM_IDS + LUCAS_CLAIM_IDS + BINARY_CLAIM_IDS,
 }
 
@@ -35,6 +40,8 @@ def expand_reviewer_claim_ids(claim_id: str | None) -> list[str]:
         return [normalized]
     if normalized in BINARY_CLAIM_IDS:
         return [normalized]
+    if normalized in HYBRID_GA_CLAIM_IDS:
+        return [normalized]
     return expand_so_claim_ids(normalized)
 
 
@@ -46,6 +53,8 @@ def claim_family(claim_id: str) -> str:
         return "lucas_cubes"
     if normalized in BINARY_CLAIM_IDS:
         return "binary_codes"
+    if normalized in HYBRID_GA_CLAIM_IDS:
+        return "hybrid_sat_ga"
     raise KeyError(f"unknown reviewer claim id: {claim_id}")
 
 
@@ -98,6 +107,25 @@ def paper_target_for_claim(claim_id: str) -> PaperTarget:
                 "gf2_rank_full",
                 "minimum_distance_enumeration",
                 "A16_progression_91_86_80",
+            ],
+            solver_preference="cadical",
+        )
+    if family == "hybrid_sat_ga":
+        return PaperTarget(
+            claim_id=HYBRID_CLAIM_ID,
+            q=2,
+            n=22,
+            k=11,
+            d=7,
+            field="GF(2)",
+            inner_product="dot",
+            objective="Verify the paper-aligned Hybrid SAT-GA public witness for a binary [22,11,7] code.",
+            required_checks=[
+                "archived_hybrid_ga_witness",
+                "gf2_rank_full",
+                "minimum_distance_enumeration",
+                "A7_weight_distribution",
+                "optional_replay_or_live_hybrid_ga",
             ],
             solver_preference="cadical",
         )
@@ -155,6 +183,7 @@ def reproduce_reviewer_claims(
     cadical_path: str | None = None,
     timeout: int = 300,
     prove_optimality: bool = True,
+    hybrid_ga_policy: HybridGAPolicy | None = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
     expanded = expand_reviewer_claim_ids(claim_id)
@@ -175,6 +204,25 @@ def reproduce_reviewer_claims(
             reports.append(reproduce_lucas_claim(claim_id=expanded_id, artifact_dir=artifact_dir))
         elif family == "binary_codes":
             reports.append(reproduce_binary_ad_43_10_16(artifact_dir=artifact_dir))
+        elif family == "hybrid_sat_ga":
+            policy = hybrid_ga_policy or HybridGAPolicy(
+                enabled=True,
+                mode="archived",
+                seed=0,
+                population=100,
+                generations=100,
+                repair_interval=50,
+                timeout_sec=timeout,
+                solver_preference="cadical",
+            )
+            reports.append(
+                run_hybrid_ga(
+                    policy=policy,
+                    artifact_dir=artifact_dir,
+                    cadical_path=cadical_path,
+                    claim_id=expanded_id,
+                )
+            )
 
     artifact_root = Path(artifact_dir) / "paper_claims"
     summary = {

@@ -1392,6 +1392,76 @@
           "source_sha256": "42b572228e6d6ceb3409f1ec2c5dbad93d51ac19e3cce8f0c3a6c51704ee8d25"
         }
       ]
+    },
+    "binary_22_11_7_hybrid_ga": {
+      "claim_id": "binary_22_11_7_hybrid_ga",
+      "d": 7,
+      "expected_A_d": 176,
+      "expected_weight_distribution": {
+        "0": 1,
+        "7": 176,
+        "8": 330,
+        "11": 672,
+        "12": 616,
+        "15": 176,
+        "16": 77
+      },
+      "generator_matrix": [
+        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1],
+        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1],
+        [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1]
+      ],
+      "k": 11,
+      "n": 22,
+      "objective": "Verify the coordinator-gated Hybrid SAT-GA public witness for a binary [22,11,7] code.",
+      "schema_version": 1,
+      "source_path": "archive/2026-05-06_mixed_submissions/ga_code_search/results/pilot_22_11_7/final_result/code_22_11_7_matrix.txt",
+      "source_sha256": "70397cbb4e0537f2b784bea36b52a12d975cc80afba5b1f934a7c19104fcc40e",
+      "repair_replay": {
+        "claim": "Archived replay of the pilot SAT-GA transition from a SAT-generated [22,11,6] seed to the verified [22,11,7] witness.",
+        "pre_repair_source_path": "archive/2026-05-06_mixed_submissions/ga_code_search/results/pilot_22_11_7/sat_solutions/code_22_11_6_solution6_matrix.npy",
+        "pre_repair_source_sha256": "99e5787622566cf75c4a45fd4e3b93225eb85ac2cd49632dc647bcfe6d41ce74",
+        "pre_repair_report_path": "archive/2026-05-06_mixed_submissions/ga_code_search/results/pilot_22_11_7/sat_solutions/code_22_11_6_solution6_result.txt",
+        "pre_repair_report_sha256": "34157aa73792d735cfd84f9437f7aaacb9f376d4fa9dcc9349a752cb9f23baa3",
+        "pre_repair_expected_d_min": 6,
+        "pre_repair_expected_A_d": 83,
+        "pre_repair_weight_distribution": {
+          "0": 1,
+          "6": 83,
+          "8": 314,
+          "10": 619,
+          "12": 640,
+          "14": 313,
+          "16": 69,
+          "18": 9
+        },
+        "pre_repair_generator_matrix": [
+          [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0],
+          [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0],
+          [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0],
+          [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1],
+          [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+          [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0],
+          [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+          [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1]
+        ],
+        "post_repair_source_path": "archive/2026-05-06_mixed_submissions/ga_code_search/results/pilot_22_11_7/final_result/code_22_11_7_matrix.txt",
+        "post_repair_source_sha256": "70397cbb4e0537f2b784bea36b52a12d975cc80afba5b1f934a7c19104fcc40e",
+        "repair_status": "ARCHIVED_REPAIR_REPLAY",
+        "repair_generation": 50,
+        "successful_repair_individual": 6
+      }
     }
   },
   "description": "Minimal public reviewer evidence bundle for deterministic Lucas, binary-code, and SO-adjacent reproduction. Lucas n=15 center sets were promoted from the 2026-05-06 archived SAT experiment and are independently reverified by the CLI.",

@@ -22,7 +22,7 @@ Paper contract:
 - For self-orthogonal claims, distinguish explicit matrix verification, SAT feasibility, codetables context, and d+1 optimality obligations.
 - For Lucas cubes, distinguish exact center-set coverage verification from missing center artifacts.
 - For binary A_d optimization, distinguish archived generator-matrix verification from fresh SAT search or novelty claims.
-- For hybrid SAT-GA claims, discuss population or repair evidence only if it is present in the handoff.
+- For hybrid SAT-GA claims, discuss population, frontier seed-bank, or repair evidence only if it is present in the handoff.
 
 Completion contract:
 <analysis> Compare the relevant solver/encoding or reproduction options using cited evidence item names. </analysis>
@@ -39,6 +39,8 @@ Allowed action schema:
 - query_codetables: ask the coordinator to fetch/cache codetables.de bounds for the fixed target.
 - run_claim_proof: ask the coordinator to run the paper claim reproduction engine with CaDiCaL preference.
 - construction_search: ask the coordinator to run or register a bounded construction/artifact search for missing Lucas center-set artifacts.
+  For claim_id=binary_22_11_7_hybrid_ga, this is the only action that may request method=hybrid_sat_ga, and only when the Evidence Truth Ledger shows hybrid_ga_policy.enabled=true.
+  The JSON mode must be null or exactly equal to hybrid_ga_policy.mode. Never escalate archived/replay to live/frontier_repair, and never switch modes unless the coordinator policy already states that mode.
 - propose_repair: record a bounded repair proposal without executing arbitrary code.
 - request_reflection: ask the Verifier/Reflector to decide from current evidence.
 - stop: stop proposing actions when no further deterministic evidence can be produced.
@@ -48,7 +50,7 @@ Completion contract:
 2. Resource Constraints - solver, artifact, timeout, and model constraints.
 3. Next Verifier Contract - what deterministic evidence should be accepted or rejected.
 4. EvolverAction JSON - the final line must be exactly one JSON object:
-{{{{"action":"query_codetables|run_claim_proof|construction_search|propose_repair|request_reflection|stop","claim_id":"ternary_bch_d9|gf4_hermitian|gf5_so|all_so_table|lucas_cubes|binary_ad_43_10_16|all_reviewer_core|null","reason":"...","timeout_sec":300,"evidence_used":["paper_input","artifact_manifest","solver_check"]}}}}"""
+{{{{"action":"query_codetables|run_claim_proof|construction_search|propose_repair|request_reflection|stop","method":"hybrid_sat_ga|null","mode":"off|archived|replay|live|frontier_repair|null","claim_id":"ternary_bch_d9|gf4_hermitian|gf5_so|all_so_table|lucas_cubes|binary_ad_43_10_16|binary_22_11_7_hybrid_ga|all_reviewer_core|null","reason":"...","timeout_sec":300,"evidence_used":["paper_input","artifact_manifest","solver_check"]}}}}"""
 
 VERIFIER_PROMPT = f"""You are the Verifier in the SolEvolve reproducibility architecture.
 
@@ -60,6 +62,7 @@ Adversarial verification rules:
 - A claim is verified only when evidence shows command/function, status, target parameters, artifact path/hash or metric, and solver status where relevant.
 - PASS requires all required proof obligations for the fixed target.
 - PARTIAL is correct for missing optional optimality proof, timeout, stale external lookup, or absent archived hybrid population evidence.
+- For Hybrid SAT-GA frontier_repair, PASS requires final_diagnostics.target_achieved=true with the target rank/d_min from paper_input. Frontier seed-bank plus repair timeout is useful evidence but remains PARTIAL.
 - FAIL requires contradictory deterministic evidence, not merely missing evidence.
 
 Completion contract:
@@ -79,6 +82,7 @@ Decision rules:
 - Use exploration, exploitation, or repair according to tau_rho=0.01, N_stag=50, tau_D=0.15, T_max=300s when metrics are available.
 - The paper action vocabulary is restricted to restart, encoding_switch, blocking_constraints, sat_repair, artifact_repair, construction_search, mutation_operator_adjustment, finalize.
 - For Lucas missing center artifacts, prefer artifact_repair or construction_search language. Do not call this a SAT repair unless a SAT/ILP encoding actually ran.
+- If frontier_solver_runs show target d timed out but d-1 seeds exist, choose repair or exploration; do not finalize PASS unless final_diagnostics.target_achieved=true.
 - Missing evidence, invalid JSON, solver errors, parser failures, low-weight violations, or timeouts should select repair/exploration or PARTIAL, not a silent PASS.
 
 Completion contract:
