@@ -1,5 +1,6 @@
 __pycache__/
 .pytest_cache/
+.DS_Store
 *.py[cod]
 *$py.class
 
@@ -16,7 +17,14 @@ ENV/
 *.log
 *.out
 
+# Optional local SAT solver checkout/build
+cadical/
+
 # Runtime artifacts
 artifacts/**
 !artifacts/
 !artifacts/manifest.json
+!artifacts/reviewer_core_claims.json
+
+# Internal contributor tests are intentionally not part of the public artifact scope.
+tests/

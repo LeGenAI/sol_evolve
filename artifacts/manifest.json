@@ -1,24 +1,26 @@
 {
   "schema_version": 1,
-  "artifact_version": "2026-05-11-repro-langsmith",
+  "artifact_version": "2026-05-12-public-reviewer-core",
   "official_commands": [
-    "solevolve-demo --dry-run --max-turns 1",
-    "solevolve-solver-smoke",
-    "solevolve-artifact-check"
+    "solevolve-reviewer-reproduce --paper-claim-id all_so_table",
+    "solevolve-reviewer-reproduce --paper-claim-id lucas_cubes",
+    "solevolve-reviewer-reproduce --paper-claim-id binary_ad_43_10_16",
+    "solevolve-reviewer-reproduce --paper-claim-id all_reviewer_core"
   ],
+  "reviewer_command": "solevolve-reviewer-reproduce --paper-claim-id all_reviewer_core --cadical-path /path/to/cadical",
   "bundled": [
-    "results/ternary_bch/summary.txt",
-    "results/gf4_hermitian/summary.txt",
-    "results/gf5_so/summary.txt"
+    "artifacts/reviewer_core_claims.json"
   ],
   "raw_artifact_policy": "Large generated artifacts are excluded from git and should be distributed through a release asset, Zenodo record, or raw artifact archive with checksums.",
   "excluded_from_git": [
     "large CNF files",
     "NumPy matrices",
     "solver .out files",
+    "runtime LangSmith/LangGraph trace exports",
+    "test folders and pytest caches",
     "private raw console logs",
     "scratch experiment drivers from the previous temporary-results directory"
   ],
   "runtime_output_dir": "artifacts",
-  "notes": "Use SOLEVOLVE_ARTIFACT_DIR to point official runtime commands at downloaded raw artifacts or locally generated results."
+  "notes": "The public bundle is intentionally minimal: manifest plus reviewer_core_claims.json. Use SOLEVOLVE_ARTIFACT_DIR to point official runtime commands at downloaded raw artifacts or locally generated results."
 }

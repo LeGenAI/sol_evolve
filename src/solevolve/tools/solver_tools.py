@@ -3,22 +3,46 @@ from __future__ import annotations
 import shlex
 import subprocess
 import sys
+import time
 import traceback
 import os
 from pathlib import Path
 from shutil import which
-from typing import Iterable
+from typing import Any, Iterable
 
 from langchain_core.tools import tool
 
 from ..engines.code_generator import CodeGenerator
-from ..tracing import traceable_run
+from ..tracing import traceable_run, update_current_run_context
+from .schemas import LocateSolverArgs, RunPythonArgs, RunSolverArgs, VerifyCodeArgs
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 
 
 def _repo_path(*parts: Iterable[str | Path]) -> Path:
     return ROOT_DIR.joinpath(*parts)
+
+
+def _user_cadical_candidate() -> Path:
+    return (
+        Path.home()
+        / "Desktop"
+        / "CodingTheoryLib"
+        / "references"
+        / ("Code" + "Evolve")
+        / "sat_solvers"
+        / "cadical"
+    )
+
+
+def _expand_solver_path(path: Path, solver: str) -> list[Path]:
+    lower = solver.lower()
+    if path.is_dir() or not path.suffix:
+        if lower in {"cadical", "cad"}:
+            return [path, path / "build" / "cadical", path / "cadical"]
+        if lower == "kissat":
+            return [path, path / "build" / "kissat", path / "kissat"]
+    return [path]
 
 
 def _format_error(header: str, exc: Exception) -> str:
@@ -36,12 +60,13 @@ def _guess_solver_candidates(name: str) -> list[Path]:
     if lower in {"cadical", "cad"}:
         env_path = os.getenv("CADICAL_PATH")
         if env_path:
-            candidates.append(Path(env_path))
+            candidates.extend(_expand_solver_path(Path(env_path), lower))
         candidates.append(_repo_path("sat_solvers", "cadical", "build", "cadical"))
+        candidates.extend(_expand_solver_path(_user_cadical_candidate(), lower))
     if lower in {"kissat"}:
         env_path = os.getenv("KISSAT_PATH")
         if env_path:
-            candidates.append(Path(env_path))
+            candidates.extend(_expand_solver_path(Path(env_path), lower))
         candidates.append(_repo_path("kissat", "build", "kissat"))
         candidates.append(_repo_path("sat_solvers", "kissat", "build", "kissat"))
     if lower in {"hcadsbva", "hcadpsbva"}:
@@ -52,6 +77,43 @@ def _guess_solver_candidates(name: str) -> list[Path]:
         candidates.append(Path(found_in_path))
 
     return candidates
+
+
+def _resolve_solver(*, solver: str, solver_path: str | None) -> tuple[Path | None, list[dict[str, Any]], float]:
+    started = time.perf_counter()
+    candidates = []
+    if solver_path:
+        candidates.extend(_expand_solver_path(Path(solver_path), solver))
+    candidates.extend(_guess_solver_candidates(solver))
+
+    checked: list[dict[str, Any]] = []
+    resolved_solver: Path | None = None
+    for path in candidates:
+        exists = path.exists()
+        executable = exists and os.access(path, os.X_OK) and path.is_file()
+        checked.append({"path": str(path), "exists": exists, "executable": executable})
+        if executable and resolved_solver is None:
+            resolved_solver = path
+            checked[-1]["selected"] = True
+            break
+
+    return resolved_solver, checked, time.perf_counter() - started
+
+
+def _format_seconds(value: Any) -> str:
+    return f"{float(value):.2f}s" if value is not None else "n/a"
+
+
+def _record_solver_trace_metadata(**metadata: Any) -> None:
+    update_current_run_context(
+        metadata={
+            "solver": metadata,
+            "solver_backend": metadata.get("selected_solver") or metadata.get("requested_solver"),
+            "solver_path": metadata.get("selected_solver_path"),
+            "solver_elapsed_ms": metadata.get("solver_elapsed_ms"),
+            "solver_total_elapsed_ms": metadata.get("total_elapsed_ms"),
+        }
+    )
 
 
 def _run_solver_impl(
@@ -67,21 +129,26 @@ def _run_solver_impl(
     systematic: bool = True,
     verbose: bool = False,
 ) -> str:
+    tool_started = time.perf_counter()
     CodeGenerator = _import_code_generator()
 
-    candidates = []
-    if solver_path:
-        candidates.append(Path(solver_path))
-    candidates.extend(_guess_solver_candidates(solver))
-
-    resolved_solver = next((p for p in candidates if p.exists()), None)
+    resolved_solver, checked_candidates, resolve_elapsed = _resolve_solver(solver=solver, solver_path=solver_path)
     solver_msg = (
         f"Solver resolved: {resolved_solver}"
         if resolved_solver
-        else f"Solver {solver} not found in candidates: {[str(c) for c in candidates]}"
+        else f"Solver {solver} not found in candidates: {[item['path'] for item in checked_candidates]}"
     )
 
     if resolved_solver is None:
+        _record_solver_trace_metadata(
+            requested_solver=solver,
+            selected_solver=None,
+            selected_solver_path=None,
+            resolution_elapsed_ms=round(resolve_elapsed * 1000, 3),
+            total_elapsed_ms=round((time.perf_counter() - tool_started) * 1000, 3),
+            checked_candidates=checked_candidates,
+            status="ERROR",
+        )
         return f"ERROR: solver missing. {solver_msg}"
 
     artifact_root = Path(os.getenv("SOLEVOLVE_ARTIFACT_DIR", "artifacts"))
@@ -102,40 +169,87 @@ def _run_solver_impl(
                 timeout_per_instance=timeout,
                 verbose=verbose,
             )
+            total_elapsed = time.perf_counter() - tool_started
+            solver_times = [res.get("solver_time") for res in results if res.get("solver_time") is not None]
+            _record_solver_trace_metadata(
+                requested_solver=solver,
+                selected_solver=solver,
+                selected_solver_path=str(resolved_solver),
+                resolution_elapsed_ms=round(resolve_elapsed * 1000, 3),
+                total_elapsed_ms=round(total_elapsed * 1000, 3),
+                solver_elapsed_ms=round(sum(float(value) for value in solver_times) * 1000, 3) if solver_times else None,
+                num_solutions_requested=num_solutions,
+                num_solutions_found=len(results),
+                statuses=[res.get("status") for res in results],
+                checked_candidates=checked_candidates,
+            )
             summary_lines = [
-                f"Solver: {resolved_solver}",
+                f"Requested solver: {solver}",
+                f"Selected solver: {solver}",
+                f"Solver path: {resolved_solver}",
+                f"Resolution time: {resolve_elapsed * 1000:.2f}ms",
                 f"Workdir: {out_dir}",
                 f"Requested: {num_solutions}, Found: {len(results)}",
+                f"Tool elapsed: {_format_seconds(total_elapsed)}",
             ]
             for res in results:
                 md = res.get("verification", {}).get("minimum_distance") if res.get("verification") else None
                 matrix_path = out_dir / f"{gen.code_name}_solution{res.get('solution_number')}_matrix.npy"
                 summary_lines.append(
                     f"- #{res.get('solution_number')}: status={res.get('status')}, "
-                    f"d_min={md}, solver_time={res.get('solver_time'):.2f}s, matrix={matrix_path}"
+                    f"d_min={md}, solver_time={_format_seconds(res.get('solver_time'))}, matrix={matrix_path}"
                 )
             return "\n".join(summary_lines)
 
         result = gen.solve(
-            kissat_path=str(resolved_solver),
+            solver_type=solver,
+            solver_path=str(resolved_solver),
             timeout=timeout,
             verbose=verbose,
         )
+        total_elapsed = time.perf_counter() - tool_started
         md = result.get("verification", {}).get("minimum_distance") if result.get("verification") else None
         matrix_path = out_dir / f"{gen.code_name}_matrix.npy"
         txt_path = out_dir / f"{gen.code_name}_result.txt"
+        _record_solver_trace_metadata(
+            requested_solver=solver,
+            selected_solver=result.get("solver_used") or solver,
+            selected_solver_path=str(resolved_solver),
+            resolution_elapsed_ms=round(resolve_elapsed * 1000, 3),
+            total_elapsed_ms=round(total_elapsed * 1000, 3),
+            solver_elapsed_ms=round(float(result["solver_time"]) * 1000, 3) if result.get("solver_time") is not None else None,
+            status=result.get("status"),
+            num_solutions_requested=num_solutions,
+            num_solutions_found=1 if result.get("status") == "SAT" else 0,
+            checked_candidates=checked_candidates,
+        )
         return "\n".join(
             [
-                f"Solver: {resolved_solver}",
+                f"Requested solver: {solver}",
+                f"Selected solver: {result.get('solver_used') or solver}",
+                f"Solver path: {resolved_solver}",
+                f"Resolution time: {resolve_elapsed * 1000:.2f}ms",
                 f"Workdir: {out_dir}",
                 f"Status: {result.get('status')}",
                 f"Min distance (verified): {md}",
-                f"Solver time: {result.get('solver_time'):.2f}s" if result.get("solver_time") else "Solver time: n/a",
+                f"Solver time: {_format_seconds(result.get('solver_time'))}",
+                f"Total time: {_format_seconds(result.get('total_time'))}",
+                f"Tool elapsed: {_format_seconds(total_elapsed)}",
                 f"Matrix: {matrix_path}",
                 f"Result text: {txt_path}",
             ]
         )
     except Exception as exc:
+        _record_solver_trace_metadata(
+            requested_solver=solver,
+            selected_solver=solver,
+            selected_solver_path=str(resolved_solver),
+            resolution_elapsed_ms=round(resolve_elapsed * 1000, 3),
+            total_elapsed_ms=round((time.perf_counter() - tool_started) * 1000, 3),
+            checked_candidates=checked_candidates,
+            status="ERROR",
+            error=str(exc),
+        )
         guidance = (
             "Guidance: verify solver binary exists and is executable; "
             "check CNF generation in src/kissat_code_search; "
@@ -144,12 +258,14 @@ def _run_solver_impl(
         return f"{_format_error('ERROR during solve', exc)}\n{guidance}"
 
 
-@tool
+@tool(args_schema=LocateSolverArgs)
 @traceable_run("solevolve.locate_solver", run_type="tool")
 def locate_solver(name: str = "cadical", hint: str | None = None) -> str:
     """
-    Locate a SAT solver binary by common repo paths or PATH lookup.
-    Provide `hint` to check a custom path first.
+    Locate a SAT solver binary without running a SAT instance.
+
+    Use before run_solver when solver availability is uncertain. Checks an optional
+    explicit hint, environment variables, common repo build paths, and PATH.
     """
     candidates = []
     if hint:
@@ -165,7 +281,7 @@ def locate_solver(name: str = "cadical", hint: str | None = None) -> str:
     return "\n".join(lines)
 
 
-@tool
+@tool(args_schema=RunSolverArgs)
 @traceable_run("solevolve.run_solver", run_type="tool")
 def run_solver(
     n: int,
@@ -180,8 +296,10 @@ def run_solver(
     verbose: bool = False,
 ) -> str:
     """
-    Generate encoding and run a SAT solver via CodeGenerator.
-    Returns a concise summary with file paths.
+    Preferred binary-code SAT search tool; writes CNF, solver output, and matrices under workdir/artifacts.
+
+    Requires an available SAT solver binary. Returns a concise status summary with
+    output paths; missing solver binaries return ERROR rather than fabricating evidence.
     """
     return _run_solver_impl(
         n=n,
@@ -197,11 +315,13 @@ def run_solver(
     )
 
 
-@tool
+@tool(args_schema=VerifyCodeArgs)
 @traceable_run("solevolve.verify_code", run_type="tool")
 def verify_code(matrix_path: str, n: int, k: int, d: int, systematic: bool = True) -> str:
     """
-    Load a saved generator matrix (.npy) and verify minimum distance.
+    Verify a saved binary generator matrix (.npy) against n, k, and target distance d.
+
+    This is read-only for the matrix file and returns a concise verification summary.
     """
     try:
         import numpy as np
@@ -226,7 +346,7 @@ def verify_code(matrix_path: str, n: int, k: int, d: int, systematic: bool = Tru
 
 
 # Backward-compatible alias for earlier demos.
-@tool
+@tool(args_schema=RunSolverArgs)
 @traceable_run("solevolve.run_sat_search", run_type="tool")
 def run_sat_search(
     n: int,
@@ -241,7 +361,9 @@ def run_sat_search(
     verbose: bool = False,
 ) -> str:
     """
-    Alias to run_solver; kept for compatibility with older notebooks/demos.
+    Compatibility alias for run_solver; prefer run_solver for new workflows.
+
+    It has the same solver requirements and file-writing side effects as run_solver.
     """
     return _run_solver_impl(
         n=n,
@@ -257,7 +379,8 @@ def run_sat_search(
     )
 
 
-@tool
+@tool(args_schema=RunPythonArgs)
+@traceable_run("solevolve.run_python", run_type="tool")
 def run_python(
     path: str,
     args: str | None = None,
@@ -266,8 +389,11 @@ def run_python(
     **kwargs: object,
 ) -> str:
     """
-    Execute a local Python script and return stdout/stderr.
-    Provide additional CLI args via `args` (space separated).
+    Manual-only: not used by the default repro graph.
+
+    Executes a local Python script and returns truncated stdout/stderr. Do not use
+    for autonomous evidence claims unless the caller explicitly authorizes the script,
+    cwd, arguments, timeout, and secret-handling risk.
     """
     target = Path(path)
     if not target.exists():

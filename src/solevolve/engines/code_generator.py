@@ -94,21 +94,27 @@ class CodeGenerator:
         kissat_path: str = "kissat",
         cnf_file: Optional[str] = None,
         timeout: Optional[int] = None,
-        verbose: bool = True
+        verbose: bool = True,
+        solver_type: str = "kissat",
+        solver_path: Optional[str] = None,
     ) -> Dict:
         """
-        Kissat으로 SAT 문제를 풀고 결과를 반환.
+        SAT solver로 SAT 문제를 풀고 결과를 반환.
 
         Parameters
         ----------
         kissat_path : str
-            Kissat 실행 파일 경로
+            Backward-compatible alias for Kissat 실행 파일 경로
         cnf_file : str, optional
             입력 CNF 파일 (없으면 자동 생성)
         timeout : int, optional
             제한 시간(초)
         verbose : bool
             상세 출력 여부
+        solver_type : str
+            Solver backend name, e.g. kissat or cadical
+        solver_path : str, optional
+            Solver executable path. If absent, uses kissat_path for compatibility.
 
         Returns
         -------
@@ -132,8 +138,9 @@ class CodeGenerator:
             print(f"CNF 파일이 존재하지 않습니다. 생성합니다...")
             cnf_file = self.generate_cnf(cnf_file)
 
-        # SAT 솔버 초기화 - using agentic selection
-        self.solver = SATSolver(solver_type="kissat", solver_path=kissat_path)
+        # SAT 솔버 초기화 - keep kissat_path as a compatibility alias.
+        selected_solver_path = solver_path or kissat_path
+        self.solver = SATSolver(solver_type=solver_type, solver_path=selected_solver_path)
 
         # SAT 문제 풀기
         sat_result = self.solver.solve(cnf_file, timeout=timeout, verbose=verbose)
@@ -145,7 +152,10 @@ class CodeGenerator:
             'cnf_file': cnf_file,
             'solver_time': sat_result['time'],
             'total_time': None,
-            'solver_stats': sat_result.get('stats', {})
+            'solver_stats': sat_result.get('stats', {}),
+            'solver_used': sat_result.get('solver_used', solver_type),
+            'solver_path': sat_result.get('solver_path', selected_solver_path),
+            'solver_output_file': sat_result.get('output_file'),
         }
 
         # SAT인 경우 생성행렬 복원 및 검증
@@ -432,7 +442,10 @@ class CodeGenerator:
                 'verification': None,
                 'cnf_file': temp_cnf,
                 'solver_time': sat_result['time'],
-                'solver_stats': sat_result.get('stats', {})
+                'solver_stats': sat_result.get('stats', {}),
+                'solver_used': sat_result.get('solver_used', solver_type),
+                'solver_path': sat_result.get('solver_path', solver_path),
+                'solver_output_file': sat_result.get('output_file'),
             }
 
             # SAT인 경우 생성행렬 복원 및 검증

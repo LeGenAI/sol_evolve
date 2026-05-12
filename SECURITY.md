@@ -5,4 +5,4 @@ SolEvolve can execute generated Python and SAT solver commands in research workf
 - Keep API keys in `.env` or environment variables only.
 - Do not upload raw secrets, full solver models, or large generated files to LangSmith.
 - Review any command before running human-in-the-loop demos with solver/tool execution enabled.
-- Prefer `--dry-run` for public CI and initial environment checks.
+- Prefer deterministic reviewer reproduction commands for public artifact checks; reserve LLM-backed graph runs for environments with configured credentials.

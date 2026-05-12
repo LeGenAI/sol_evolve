@@ -19,15 +19,22 @@ class Settings:
     artifact_dir: Path = Path("artifacts")
     kissat_path: str = "./kissat/build/kissat"
     cadical_path: str | None = None
+    solver_preference: str = "cadical"
     langsmith_project: str = "solevolve-repro"
     trace_tags: tuple[str, ...] = ("revision", "reproducibility", "github")
     paper_claim_id: str | None = None
+    paper_claim_timeout: int = 300
 
 
 def _split_tags(value: str | None) -> tuple[str, ...]:
     if not value:
         return ("revision", "reproducibility", "github")
     return tuple(tag.strip() for tag in value.split(",") if tag.strip())
+
+
+def _solver_preference(value: str | None) -> str:
+    normalized = (value or "cadical").lower()
+    return normalized if normalized in {"cadical", "kissat"} else "cadical"
 
 
 def load_settings(*, require_api_key: bool = True) -> Settings:
@@ -46,9 +53,11 @@ def load_settings(*, require_api_key: bool = True) -> Settings:
         artifact_dir=Path(os.getenv("SOLEVOLVE_ARTIFACT_DIR", "artifacts")),
         kissat_path=os.getenv("KISSAT_PATH", "./kissat/build/kissat"),
         cadical_path=os.getenv("CADICAL_PATH") or None,
+        solver_preference=_solver_preference(os.getenv("SOLEVOLVE_SOLVER")),
         langsmith_project=os.getenv("LANGSMITH_PROJECT", "solevolve-repro"),
         trace_tags=_split_tags(os.getenv("SOLEVOLVE_TRACE_TAGS")),
         paper_claim_id=os.getenv("SOLEVOLVE_PAPER_CLAIM_ID") or None,
+        paper_claim_timeout=int(os.getenv("SOLEVOLVE_PAPER_CLAIM_TIMEOUT", "300")),
     )
 
 

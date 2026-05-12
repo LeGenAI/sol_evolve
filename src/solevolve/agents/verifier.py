@@ -1,9 +1,5 @@
 from .base import Agent
-
-
-VERIFIER_PROMPT = """You are the Verifier. Check correctness, bounds, and metrics.
-- Report validation results succinctly (rank, distance, bounds, coverage).
-- If data is missing, request it explicitly."""
+from .prompts import VERIFIER_PROMPT
 
 
 class VerifierAgent(Agent):

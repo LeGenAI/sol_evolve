@@ -12,15 +12,39 @@ This checklist aligns SolEvolve with current research-code release expectations 
 
 | Area | SolEvolve status |
 | --- | --- |
-| Installable code | `pyproject.toml`, `requirements.txt`, and the three console scripts |
-| Official commands | `solevolve-demo`, `solevolve-solver-smoke`, `solevolve-artifact-check` |
-| No-secret smoke test | `solevolve-demo --dry-run --max-turns 1` |
-| Dependencies | pinned LangChain/LangGraph stack plus NumPy, LangSmith, dotenv, pytest |
+| Installable code | `pyproject.toml`, `requirements.txt`, and console scripts |
+| Reviewer command | `solevolve-reviewer-reproduce --paper-claim-id all_reviewer_core --cadical-path /path/to/cadical` |
+| Dependencies | pinned LangChain/LangGraph stack plus NumPy, LangSmith, dotenv, and requests |
 | Artifact manifest | `artifacts/manifest.json` |
 | Raw artifact policy | large CNF/model/matrix/log files excluded from git and referenced via `SOLEVOLVE_ARTIFACT_DIR` |
-| Deterministic metadata | git SHA, thread id, artifact dir, tags, and paper claim id recorded in run summaries/traces |
+| Deterministic metadata | git SHA, thread id, artifact dir, preferred solver, solver timing, tags, and paper claim id recorded in run summaries/traces |
 | Traceability | LangSmith optional; no-op when keys are absent |
-| CI | compile/import/config/dry-run tests without private keys or solver binaries |
+| Public verification | deterministic CLI reports under `solevolve-reviewer-reproduce` |
+
+The CaDiCaL path may be either a binary or a source/build directory. When the path is omitted, the resolver checks the repo-local `cadical/build/cadical` before common environment/default locations.
+
+The reviewer command is the acceptance path. It checks the artifact manifest, hashes the single bundled reviewer artifact, verifies solver availability where needed, queries codetables.de with sanitized cache fallback where applicable, and runs deterministic paper-claim reproduction for the self-orthogonal table rows, Lucas perfect partitions, and binary `[43,10,16]` `A_16` progression. The demo graph remains useful for LangSmith/LLM tracing: it first resolves a paper-style `paper_input` from `--paper-claim-id` or `--target-json`, records deterministic repro checks, and ends with a reviewer-facing `paper_output`. Central coordinator logic owns tool policy, routing, fallback verdicts, and threshold decisions. LLM roles do not freely call tools in the default graph. The LLM Evolver emits a validated `EvolverAction`, and the coordinator executes only whitelisted codetables/proof actions. Missing SAT solvers are represented as `SKIPPED`, missing raw table-level evidence as `INSUFFICIENT_ARTIFACT`, and optional unbundled backends as `UNAVAILABLE`. The public code directly verifies the explicit GF(3)/GF(4)/GF(5) matrices and weight distributions, the Lucas `Lambda_7(1^4)` center-set partition, and the binary `A_16=91,86,80` progression; Lucas `n=15` rows require external center-set artifacts before they can be marked `PASS`.
+
+The canonical LangGraph run I/O is:
+
+```json
+{
+  "paper_input": {
+    "human_goal": "Goal text",
+    "target": {"claim_id": "ternary_bch_d9", "q": 3, "n": 20, "k": 7, "d": 9},
+    "codetables_query": {"q": 3, "n": 20, "k": 7},
+    "solver_budget_sec": 300
+  },
+  "paper_output": {
+    "solver_runs": [{"claim_id": "ternary_bch_d9", "status": "SAT", "elapsed_ms": 0.0}],
+    "diagnostics": [{"claim_id": "ternary_bch_d9", "d_min": 9, "self_orthogonal": true}],
+    "verdict": "PASS",
+    "missing_obligations": []
+  }
+}
+```
+
+Hybrid SAT-GA fields are represented in the same contracts as optional population/verifier state. The public graph does not claim a fresh live GA population search unless archived population artifacts are supplied.
 
 ## Public surface policy
 
@@ -28,9 +52,9 @@ The main branch is a reproducible scaffold, not a dump of exploratory research n
 
 ## Required before paper artifact link
 
-- Publish a release asset or external archive containing raw matrices/logs needed for table-level reproduction.
-- Add checksums for release artifacts to `artifacts/manifest.json`.
-- For every table in the manuscript, list the exact command, inputs, expected outputs, number of runs, timeout, solver version, and compute environment.
+- Run focused reviewer commands for `all_so_table`, `binary_ad_43_10_16`, and `lucas_cubes`, then archive their JSON/Markdown reports.
+- Publish any large generated CNFs/logs only as external release assets if journal policy requires raw solver logs.
+- For every table beyond the self-orthogonal rows, list the exact command, inputs, expected outputs, number of runs, timeout, solver version, and compute environment.
 - Keep claims in README synchronized with the revised manuscript. Avoid "first", "novel", "fully automated", or model-robustness claims unless the artifact provides direct evidence.
 
 ## Recommended next pass

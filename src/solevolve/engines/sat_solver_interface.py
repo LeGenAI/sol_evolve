@@ -161,7 +161,9 @@ class SATSolver:
                 'model': model,
                 'output_file': output_file,
                 'stats': stats,
-                'solver_used': self.solver_type
+                'solver_used': self.solver_type,
+                'solver_path': self.solver_path,
+                'command': cmd,
             }
 
         except subprocess.TimeoutExpired:
@@ -175,7 +177,8 @@ class SATSolver:
                 'model': None,
                 'output_file': output_file,
                 'stats': {},
-                'solver_used': self.solver_type
+                'solver_used': self.solver_type,
+                'solver_path': self.solver_path,
             }
 
         except Exception as e:
@@ -190,6 +193,7 @@ class SATSolver:
                 'output_file': output_file,
                 'stats': {},
                 'solver_used': self.solver_type,
+                'solver_path': self.solver_path,
                 'error': str(e)
             }
     

@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import argparse
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
 REQUIRED_COMMANDS = {
-    "solevolve-demo --dry-run --max-turns 1",
-    "solevolve-solver-smoke",
-    "solevolve-artifact-check",
+    "solevolve-reviewer-reproduce --paper-claim-id all_reviewer_core",
 }
 
 
@@ -43,23 +39,3 @@ def check_manifest(path: Path) -> dict[str, Any]:
         "missing_commands": missing_commands,
         "excluded_from_git": data.get("excluded_from_git", []),
     }
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Validate the SolEvolve public artifact manifest.")
-    parser.add_argument(
-        "--manifest",
-        type=Path,
-        default=Path("artifacts") / "manifest.json",
-        help="Path to artifacts/manifest.json.",
-    )
-    args = parser.parse_args()
-
-    payload = check_manifest(args.manifest)
-    print(json.dumps(payload, indent=2, sort_keys=True))
-    if payload["status"] != "OK":
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()

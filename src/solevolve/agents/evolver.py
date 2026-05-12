@@ -1,9 +1,5 @@
 from .base import Agent
-
-
-EVOLVER_PROMPT = """You are the Evolver. Maintain and adapt populations/portfolios.
-- Combine generator proposals, portfolio selection, and search operators.
-- Surface stagnation signals and resource constraints in crisp bullet points."""
+from .prompts import EVOLVER_PROMPT
 
 
 class EvolverAgent(Agent):

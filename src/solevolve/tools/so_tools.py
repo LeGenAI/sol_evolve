@@ -20,36 +20,82 @@ from typing import Optional
 import numpy as np
 from langchain_core.tools import tool
 
+from ..tracing import traceable_run
+from .schemas import CreateHammingGeneratorArgs, Rank1EliminationArgs, SoSatSearchArgs, VerifySoEmbeddingArgs
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+
+ROOT_DIR = Path(__file__).resolve().parents[3]
+
+
+class SOBackendUnavailable(RuntimeError):
+    """Raised when the optional SO embedding backend is not bundled."""
 
 
 def _format_error(header: str, exc: Exception) -> str:
     return f"{header}: {exc}\n{traceback.format_exc()}"
 
 
+def _format_unavailable(exc: Exception) -> str:
+    return f"UNAVAILABLE: {exc}"
+
+
+def _rank_gf2(matrix: np.ndarray) -> int:
+    work = np.array(matrix, dtype=int, copy=True) % 2
+    rows, cols = work.shape
+    rank = 0
+    pivot_col = 0
+
+    for row in range(rows):
+        while pivot_col < cols and not np.any(work[row:, pivot_col]):
+            pivot_col += 1
+        if pivot_col >= cols:
+            break
+        pivot_rows = np.where(work[row:, pivot_col] == 1)[0]
+        pivot_row = row + int(pivot_rows[0])
+        if pivot_row != row:
+            work[[row, pivot_row]] = work[[pivot_row, row]]
+        for other in range(rows):
+            if other != row and work[other, pivot_col] == 1:
+                work[other] ^= work[row]
+        rank += 1
+        pivot_col += 1
+    return rank
+
+
 def _import_so_embedding():
     """Import SO embedding module."""
     import sys
-    sys.path.insert(0, str(ROOT_DIR / "sol_evolve"))
-    from so_embedding_sat import (
-        SOEmbeddingSATEncoder,
-        rank_one_elimination,
-        solve_so_embedding_sat
-    )
+    candidates = [ROOT_DIR, ROOT_DIR / "sol_evolve"]
+    for candidate in candidates:
+        if str(candidate) not in sys.path:
+            sys.path.insert(0, str(candidate))
+    try:
+        from so_embedding_sat import (
+            SOEmbeddingSATEncoder,
+            rank_one_elimination,
+            solve_so_embedding_sat
+        )
+    except ModuleNotFoundError as exc:
+        raise SOBackendUnavailable(
+            "optional so_embedding_sat.py backend is not bundled in the public package; "
+            "provide the raw artifact/backend archive before running SO SAT tools"
+        ) from exc
     return SOEmbeddingSATEncoder, rank_one_elimination, solve_so_embedding_sat
 
 
-@tool
+@tool(args_schema=Rank1EliminationArgs)
+@traceable_run("solevolve.run_rank1_elimination", run_type="tool")
 def run_rank1_elimination(
     matrix_path: str,
     output_dir: Optional[str] = None,
 ) -> str:
     """
-    Run Rank-1 Elimination algorithm to find minimum SO embedding.
+    Optional-backend GF(2) SO tool; returns UNAVAILABLE when so_embedding_sat.py is absent.
+
+    Run Rank-1 Elimination over binary matrices to find a minimum self-orthogonal embedding.
 
     This greedy algorithm from SO.tex Section 5 guarantees s = rank(GG^T) columns,
-    which is the theoretical minimum for any SO embedding.
+    which is the theoretical minimum for binary SO embedding.
 
     Parameters
     ----------
@@ -101,7 +147,7 @@ def run_rank1_elimination(
         lines = [
             f"Rank-1 Elimination Result",
             f"Input code: [{n}, {k}]",
-            f"Gram rank: rank(GG^T) = {np.linalg.matrix_rank((G @ G.T) % 2)}",
+            f"Gram rank over GF(2): rank(GG^T) = {_rank_gf2((G @ G.T) % 2)}",
             f"Columns added: s = {s}",
             f"Output code: [{n + s}, {k}, {min_dist}]",
             f"Self-orthogonal: {is_so}",
@@ -111,11 +157,14 @@ def run_rank1_elimination(
 
         return "\n".join(lines)
 
+    except SOBackendUnavailable as exc:
+        return _format_unavailable(exc)
     except Exception as exc:
         return _format_error("ERROR in rank1_elimination", exc)
 
 
-@tool
+@tool(args_schema=SoSatSearchArgs)
+@traceable_run("solevolve.run_so_sat_search", run_type="tool")
 def run_so_sat_search(
     matrix_path: str,
     s: Optional[int] = None,
@@ -126,7 +175,9 @@ def run_so_sat_search(
     solver_path: Optional[str] = None,
 ) -> str:
     """
-    Run SAT-based search for SO embedding with optional A_d minimization.
+    Optional-backend GF(2) SO SAT tool; returns UNAVAILABLE when so_embedding_sat.py is absent.
+
+    Runs SAT-based search for binary self-orthogonal embedding with optional A_d minimization.
 
     This extends the Rank-1 algorithm by using SAT to search for S matrices
     that additionally satisfy minimum distance constraints or minimize A_d.
@@ -273,17 +324,22 @@ def run_so_sat_search(
 
         return "\n".join(lines)
 
+    except SOBackendUnavailable as exc:
+        return _format_unavailable(exc)
     except Exception as exc:
         return _format_error("ERROR in so_sat_search", exc)
 
 
-@tool
+@tool(args_schema=VerifySoEmbeddingArgs)
+@traceable_run("solevolve.verify_so_embedding", run_type="tool")
 def verify_so_embedding(
     g_ext_path: str,
     compute_weight_dist: bool = True,
 ) -> str:
     """
-    Verify that a generator matrix generates a self-orthogonal code.
+    GF(2)-only verifier for a binary self-orthogonal embedding matrix.
+
+    Verifies that a generator matrix generates a binary self-orthogonal code.
 
     Parameters
     ----------
@@ -304,13 +360,13 @@ def verify_so_embedding(
         # Self-orthogonality check
         gram = (G_ext @ G_ext.T) % 2
         is_so = np.all(gram == 0)
-        hull_dim = k - np.linalg.matrix_rank(gram)
+        hull_dim = k - _rank_gf2(gram)
 
         lines = [
             f"SO Embedding Verification",
             f"Code: [{n_prime}, {k}]",
             f"Self-orthogonal: {is_so}",
-            f"Hull dimension: {hull_dim}",
+            f"Hull dimension over GF(2): {hull_dim}",
         ]
 
         if is_so:
@@ -359,12 +415,15 @@ def verify_so_embedding(
         return _format_error("ERROR in verify_so_embedding", exc)
 
 
-@tool
+@tool(args_schema=CreateHammingGeneratorArgs)
+@traceable_run("solevolve.create_hamming_generator", run_type="tool")
 def create_hamming_generator(
     r: int,
     output_path: Optional[str] = None,
 ) -> str:
     """
+    GF(2)-only helper that writes a Hamming generator matrix to .npy.
+
     Create generator matrix for Hamming [2^r - 1, 2^r - 1 - r, 3] code.
 
     From SO.tex: Hamming codes are important test cases for SO embedding.
@@ -432,7 +491,7 @@ def create_hamming_generator(
 
         # Compute Gram matrix rank
         gram = (G @ G.T) % 2
-        gram_rank = np.linalg.matrix_rank(gram)
+        gram_rank = _rank_gf2(gram)
         s_min = gram_rank
 
         lines = [
@@ -442,8 +501,8 @@ def create_hamming_generator(
             f"Valid (GH^T = 0): {is_valid}",
             f"",
             f"SO Embedding Info (from SO.tex Theorem 3.1):",
-            f"  Gram rank = r = {gram_rank}",
-            f"  Minimum columns to add: s = k - r = {k - r}",
+            f"  Gram rank over GF(2) = {gram_rank}",
+            f"  Minimum columns to add: s = {s_min}",
             f"  Resulting code: [{n + k - r}, {k}] = [{2*(n-r)}, {n-r}]",
             f"  This is a self-dual code!",
             f"",
@@ -468,7 +527,7 @@ def _test_tools():
     G[:, :k] = np.eye(k, dtype=int)
     G[:, k:] = np.random.randint(0, 2, (k, n - k))
 
-    test_path = ROOT_DIR / "sol_evolve" / "test_G.npy"
+    test_path = ROOT_DIR / "test_G.npy"
     np.save(test_path, G)
 
     # Test rank-1 elimination

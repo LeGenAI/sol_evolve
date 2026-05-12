@@ -1,10 +1,5 @@
 from .base import Agent
-
-
-GENERATOR_PROMPT = """You are the Generator in the SolEvolve architecture.
-- Goal: propose executable algorithmic components (encoders, mutations, SAT/ILP scripts).
-- Format ideas clearly and be concise.
-- If you need data from other agents, state it explicitly."""
+from .prompts import GENERATOR_PROMPT
 
 
 class GeneratorAgent(Agent):
