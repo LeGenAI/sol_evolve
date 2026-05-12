@@ -11,7 +11,7 @@
   "bundled": [
     "artifacts/reviewer_core_claims.json"
   ],
-  "raw_artifact_policy": "Large generated artifacts are excluded from git and should be distributed through a release asset, Zenodo record, or raw artifact archive with checksums.",
+  "raw_artifact_policy": "Large generated artifacts are excluded from git and should be distributed through a release asset, Zenodo record, or raw artifact archive with checksums. The compact Lucas n=15 center lists needed for reviewer reproduction are bundled in reviewer_core_claims.json.",
   "excluded_from_git": [
     "large CNF files",
     "NumPy matrices",

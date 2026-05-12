@@ -49,7 +49,7 @@ LUCAS_CLAIMS: dict[str, dict[str, Any]] = {
         "expected_vertex_count": 32707,
         "expected_center_count": 2047,
         "expected_ball_size_distribution": {14: 11, 15: 23, 16: 2013},
-        "source": "required external center-set artifact",
+        "source": "artifacts/reviewer_core_claims.json from archived 2026-05-06 SAT experiment",
         "required": True,
     },
     "lucas_l15_s11": {
@@ -60,7 +60,7 @@ LUCAS_CLAIMS: dict[str, dict[str, Any]] = {
         "expected_vertex_count": 32647,
         "expected_center_count": 2047,
         "expected_ball_size_distribution": {14: 16, 15: 73, 16: 1958},
-        "source": "required external center-set artifact",
+        "source": "artifacts/reviewer_core_claims.json from archived 2026-05-06 SAT experiment",
         "required": True,
     },
 }

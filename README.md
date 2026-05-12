@@ -75,10 +75,11 @@ For strict acceptance of only fully bundled claims, use:
 
 ```bash
 solevolve-reviewer-reproduce --paper-claim-id binary_ad_43_10_16 --require-pass
+solevolve-reviewer-reproduce --paper-claim-id lucas_cubes --require-pass
 solevolve-reviewer-reproduce --paper-claim-id all_so_table --cadical-path "$CADICAL_PATH" --require-pass
 ```
 
-`lucas_cubes` currently gives `PASS` for the explicit `Lambda_7(1^4)` center set and `INSUFFICIENT_ARTIFACT` for the `n=15` rows until their 2047-center artifacts or deterministic construction source are included in the public artifact bundle.
+`lucas_cubes` now verifies the bundled `Lambda_7(1^4)`, `Lambda_15(1^11)`, and `Lambda_15(1^12)` center sets directly from `artifacts/reviewer_core_claims.json`.
 
 See `docs/reviewer_reproduction.md` for the reviewer acceptance contract.
 
@@ -126,7 +127,7 @@ The public release scope is deliberately narrow:
 - included: package source, CLI entrypoints, docs, `artifacts/manifest.json`, and `artifacts/reviewer_core_claims.json`
 - excluded: tests, runtime reports, LangSmith exports, CNFs, solver models, generated NumPy files, private logs, and scratch experiment drivers
 
-Large CNF files, NumPy matrices, solver outputs, private raw console logs, runtime traces, test folders, and long-form exploratory drivers are intentionally excluded from the public artifact scope. The public bundle is intentionally small: `artifacts/manifest.json` plus `artifacts/reviewer_core_claims.json`. Large Lucas `n=15` center sets should be distributed through a release asset, Zenodo record, or raw artifact archive using the same `reviewer_core_claims.json` schema. Use `SOLEVOLVE_ARTIFACT_DIR` to point runtime commands to local or downloaded artifacts.
+Large CNF files, NumPy matrices, solver outputs, private raw console logs, runtime traces, test folders, and long-form exploratory drivers are intentionally excluded from the public artifact scope. The public bundle is intentionally small: `artifacts/manifest.json` plus `artifacts/reviewer_core_claims.json`. The Lucas `n=15` center sets are bundled as compact bitstring lists inside `reviewer_core_claims.json`; raw SAT logs and NumPy copies remain excluded. Use `SOLEVOLVE_ARTIFACT_DIR` to point runtime commands to local or downloaded artifacts.
 
 See `docs/reproducibility.md` for the paper-code checklist, included/excluded artifact policy, and benchmarked open-source release standards used for this cleanup.
 

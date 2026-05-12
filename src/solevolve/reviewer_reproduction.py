@@ -90,6 +90,8 @@ def _claim_rows(claim_summary: dict[str, Any]) -> list[dict[str, Any]]:
                 "coverage_ok": (diagnostics.get("checks") or {}).get("exact_cover"),
                 "vertex_count": diagnostics.get("vertex_count"),
                 "center_count": diagnostics.get("center_count"),
+                "minimum_pairwise_distance": diagnostics.get("minimum_pairwise_distance"),
+                "ball_size_distribution": diagnostics.get("ball_size_distribution"),
                 "A_d_progression": report.get("A_d_progression"),
                 "best_A_d": report.get("best_A_d", binary_best if binary_best != 10**9 else None),
                 "reduction_percent": report.get("reduction_percent"),
@@ -239,6 +241,10 @@ def _write_markdown_report(path: Path, payload: dict[str, Any]) -> None:
             diagnostics.append(f"vertices={row.get('vertex_count')}")
         if row.get("center_count") is not None:
             diagnostics.append(f"centers={row.get('center_count')}")
+        if row.get("minimum_pairwise_distance") is not None:
+            diagnostics.append(f"pairwise_d_min={row.get('minimum_pairwise_distance')}")
+        if row.get("ball_size_distribution") is not None:
+            diagnostics.append(f"balls={row.get('ball_size_distribution')}")
         if row.get("solver_status"):
             diagnostics.append(f"SAT={row.get('solver_status')}")
         if row.get("optimality_status"):

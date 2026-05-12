@@ -38,8 +38,8 @@ The reviewer command checks the public artifact manifest, hashes bundled files, 
 | `gf4_hermitian` | GF(4) Hermitian explicit matrix, self-orthogonality, weight distribution, d=6 SAT; d>=7 attempted under timeout |
 | `gf5_so` | GF(5) explicit matrix, self-orthogonality, weight distribution, d=8 SAT; d>=9 attempted under timeout |
 | `lucas_l7_s4` | Generate `Lambda_7(1^4)`, verify 15 centers, pairwise distance >= 3, exact closed-neighborhood cover of 99 vertices, and ball-size distribution `{6:7,7:7,8:1}` |
-| `lucas_l15_s12` | Requires public 2047-center artifact or deterministic construction source; missing artifact reports `INSUFFICIENT_ARTIFACT` |
-| `lucas_l15_s11` | Requires public 2047-center artifact or deterministic construction source; missing artifact reports `INSUFFICIENT_ARTIFACT` |
+| `lucas_l15_s12` | Verify the bundled 2047-center artifact from the archived SAT experiment: pairwise distance >= 3, exact closed-neighborhood cover of 32707 vertices, and ball-size distribution `{14:11,15:23,16:2013}` |
+| `lucas_l15_s11` | Verify the bundled 2047-center artifact from the archived SAT experiment: pairwise distance >= 3, exact closed-neighborhood cover of 32647 vertices, and ball-size distribution `{14:16,15:73,16:1958}` |
 | `binary_ad_43_10_16` | Verify three archived generator matrices as binary `[43,10,16]` codes and recompute `A_16=91,86,80` by enumerating all `2^10` codewords |
 
 `PASS` means the selected claims passed required proof obligations and required codetables lookup succeeded live or from cache. `PARTIAL` means some deterministic checks pass but a selected suite contains an unavailable optional proof, timeout, or missing artifact. `INSUFFICIENT_ARTIFACT` on a claim means the release lacks the raw center/matrix artifact needed for a full proof. `FAIL` means a required manifest or mathematical proof obligation contradicted the manuscript claim.
@@ -52,7 +52,7 @@ solevolve-reviewer-reproduce --paper-claim-id lucas_cubes
 solevolve-reviewer-reproduce --paper-claim-id all_so_table --cadical-path "$CADICAL_PATH" --require-pass
 ```
 
-`all_reviewer_core --require-pass` is intentionally strict: it will fail until the Lucas `n=15` center artifacts are included.
+`all_reviewer_core --require-pass` is intentionally strict: it fails if any required SO, Lucas, or binary claim obligation fails. The bundled Lucas `n=15` center sets are now included in `artifacts/reviewer_core_claims.json`; no external Lucas center archive is needed for the reviewer command.
 
 The Lucas `Lambda_7(1^4)` verifier recomputes ball sizes inside the induced Lucas cube. For the manuscript center list, the reproducible distribution is `{6:7,7:7,8:1}`; any paper text reporting a different distribution should be corrected to this verifier output.
 
