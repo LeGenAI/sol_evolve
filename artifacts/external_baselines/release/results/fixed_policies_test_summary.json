@@ -1,0 +1,105 @@
+{
+  "args": {
+    "cadical_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/cadical/build/cadical",
+    "dataset": "sol_evolve/artifacts/external_baselines/repair_policy_dataset_corrupt_main/candidates.jsonl",
+    "k": 11,
+    "keep_cnf": false,
+    "max_cases": null,
+    "mutable_budget": 4,
+    "n": 22,
+    "out_dir": "sol_evolve/artifacts/external_baselines/corrupt_main_test_budget4_t10",
+    "policies": "random,low_weight_support,all_parity",
+    "seed": 0,
+    "split": "test",
+    "target_d": 7,
+    "timeout_sec": 10.0
+  },
+  "config": {
+    "expected_a_d": null,
+    "k": 11,
+    "keep_cnf": false,
+    "mutable_budget": 4,
+    "n": 22,
+    "quiet": true,
+    "solver_type": "cadical",
+    "target_d": 7,
+    "timeout_sec": 10.0
+  },
+  "created_at": "2026-07-06T09:08:56.028247+00:00",
+  "dataset_size_after_split": 90,
+  "description": "Fixed-policy pilot for the verifier-facing repair-policy baseline interface.",
+  "paired_comparisons": [
+    {
+      "mcnemar_exact_p": 2.0679515313825692e-25,
+      "paired_total": 90,
+      "policy": "all_parity",
+      "policy_only_successes": 83,
+      "policy_successes": 90,
+      "reference": "random",
+      "reference_only_successes": 0,
+      "reference_successes": 7,
+      "risk_difference": 0.9222222222222223
+    },
+    {
+      "mcnemar_exact_p": 0.015625,
+      "paired_total": 90,
+      "policy": "low_weight_support",
+      "policy_only_successes": 0,
+      "policy_successes": 0,
+      "reference": "random",
+      "reference_only_successes": 7,
+      "reference_successes": 7,
+      "risk_difference": -0.07777777777777778
+    }
+  ],
+  "raw_records": "sol_evolve/artifacts/external_baselines/corrupt_main_test_budget4_t10/raw_policy_records.jsonl",
+  "summaries": [
+    {
+      "mean_elapsed_ms": 2808.3711555555556,
+      "mean_mutable_columns": 4.0,
+      "median_elapsed_ms": 3002.5035,
+      "median_mutable_columns": 4.0,
+      "policy": "random",
+      "solver_status_counts": {
+        "SAT": 7,
+        "UNSAT": 83
+      },
+      "success_rate": 0.07777777777777778,
+      "successes": 7,
+      "total": 90,
+      "wilson_95_high": 0.15193860182592028,
+      "wilson_95_low": 0.03818481531728901
+    },
+    {
+      "mean_elapsed_ms": 2115.133311111111,
+      "mean_mutable_columns": 4.0,
+      "median_elapsed_ms": 2313.5649999999996,
+      "median_mutable_columns": 4.0,
+      "policy": "low_weight_support",
+      "solver_status_counts": {
+        "UNSAT": 90
+      },
+      "success_rate": 0.0,
+      "successes": 0,
+      "total": 90,
+      "wilson_95_high": 0.04093562556432678,
+      "wilson_95_low": 0.0
+    },
+    {
+      "mean_elapsed_ms": 9136.858166666667,
+      "mean_mutable_columns": 11.0,
+      "median_elapsed_ms": 9119.7195,
+      "median_mutable_columns": 11.0,
+      "policy": "all_parity",
+      "solver_status_counts": {
+        "SAT": 90
+      },
+      "success_rate": 1.0,
+      "successes": 90,
+      "total": 90,
+      "wilson_95_high": 1.0000000000000002,
+      "wilson_95_low": 0.9590643744356733
+    }
+  ],
+  "summary_csv": "sol_evolve/artifacts/external_baselines/corrupt_main_test_budget4_t10/summary.csv"
+}

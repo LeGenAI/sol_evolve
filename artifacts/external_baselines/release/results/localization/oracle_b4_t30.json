@@ -1,0 +1,43 @@
+{
+  "args": {
+    "cadical_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/cadical/build/cadical",
+    "dataset": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/artifacts/external_baselines/repair_policy_dataset_corrupt_main/candidates.jsonl",
+    "k": 11,
+    "max_cases": null,
+    "mutable_budget": 4,
+    "n": 22,
+    "out_dir": "sol_evolve/artifacts/external_baselines/oracle_corrupt_main_test_budget4_t30",
+    "split": "test",
+    "target_d": 7,
+    "timeout_sec": 30.0
+  },
+  "candidate_count": 90,
+  "config": {
+    "expected_a_d": null,
+    "k": 11,
+    "keep_cnf": false,
+    "mutable_budget": 4,
+    "n": 22,
+    "quiet": true,
+    "solver_type": "cadical",
+    "target_d": 7,
+    "timeout_sec": 30.0
+  },
+  "created_at": "2026-07-06T12:53:56.279486+00:00",
+  "description": "Oracle ceiling for the bounded repair-policy interface: mutable set seeded from metadata.corrupted_columns, padded to the budget via the shared top-B selection pathway.",
+  "raw_records": "sol_evolve/artifacts/external_baselines/oracle_corrupt_main_test_budget4_t30/raw_policy_records.jsonl",
+  "summary": {
+    "mean_elapsed_ms": 2550.370622222222,
+    "mean_mutable_columns": 4.0,
+    "median_elapsed_ms": 3230.4449999999997,
+    "median_mutable_columns": 4.0,
+    "solver_status_counts": {
+      "SAT": 90
+    },
+    "success_rate": 1.0,
+    "successes": 90,
+    "total": 90,
+    "wilson_95_high": 1.0000000000000002,
+    "wilson_95_low": 0.9590643744356733
+  }
+}

@@ -257,10 +257,10 @@ class SATSolver:
 
             # Common status indicators
             if line.startswith('s '):
-                if 'SATISFIABLE' in line:
-                    status = 'SAT'
-                elif 'UNSATISFIABLE' in line:
+                if 'UNSATISFIABLE' in line:
                     status = 'UNSAT'
+                elif 'SATISFIABLE' in line:
+                    status = 'SAT'
             elif line.upper().startswith('SAT'):
                 status = 'SAT'
             elif line.upper().startswith('UNSAT'):

@@ -28,5 +28,11 @@ artifacts/**
 !artifacts/reviewer_experiment_summaries.json
 !artifacts/reviewer_experiment_summaries.csv
 
+# Common-interface FunSearch/EoH benchmark: reviewer-facing release bundle
+# (see docs/external_baselines_reproduction.md)
+!artifacts/external_baselines/
+!artifacts/external_baselines/release/
+!artifacts/external_baselines/release/**
+
 # Internal contributor tests are intentionally not part of the public artifact scope.
 tests/

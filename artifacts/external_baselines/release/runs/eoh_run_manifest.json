@@ -1,0 +1,33 @@
+{
+  "candidate_count": 88,
+  "created_at": "2026-07-06T09:09:17.975547+00:00",
+  "dataset": "sol_evolve/artifacts/external_baselines/repair_policy_dataset_corrupt_main/candidates.jsonl",
+  "description": "EoH direct comparison on SolEvolve's shared verifier-facing repair-policy interface.",
+  "eoh": {
+    "max_sample_nums": 12,
+    "n_pop": 3,
+    "num_evaluators": 1,
+    "num_samplers": 1,
+    "pop_size": 4
+  },
+  "llm": {
+    "api_endpoint": "openrouter.ai",
+    "api_key_env": "OPENROUTER_API_KEY",
+    "model": "anthropic/claude-sonnet-4.6",
+    "provider": "openrouter"
+  },
+  "max_cases": 24,
+  "output_dir": "sol_evolve/artifacts/external_baselines/eoh_repair_policy_corrupt_main",
+  "repair_config": {
+    "expected_a_d": null,
+    "k": 11,
+    "keep_cnf": false,
+    "mutable_budget": 4,
+    "n": 22,
+    "quiet": true,
+    "solver_type": "cadical",
+    "target_d": 7,
+    "timeout_sec": 5.0
+  },
+  "split": "train"
+}

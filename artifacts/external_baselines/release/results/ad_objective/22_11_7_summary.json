@@ -1,0 +1,58 @@
+{
+  "args": {
+    "artifact_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/artifacts/reviewer_core_claims.json",
+    "generations": 100,
+    "instance": "22_11_7",
+    "objectives": "d_min_only,d_min_a_d",
+    "out_dir": "sol_evolve/artifacts/external_baselines/ad_objective_22_11_7_n50_p100_g100",
+    "population": 100,
+    "runs": 50,
+    "seed_start": 0
+  },
+  "created_at": "2026-07-06T13:28:35.872513+00:00",
+  "description": "Matched-seed GA objective ablation: d_min-only vs d_min + A_d selection.",
+  "instance_config": {
+    "d": 7,
+    "k": 11,
+    "n": 22
+  },
+  "paired": {
+    "a_d_objective_higher_A_d": 0,
+    "a_d_objective_lower_A_d": 0,
+    "median_diff_dmin_a_d_minus_dmin_only": 0.0,
+    "paired_runs": 50,
+    "sign_test_exact_p": 1.0,
+    "ties": 50
+  },
+  "seed_meta": {
+    "seed_A_d": 176,
+    "seed_d_min": 7,
+    "source": "verified_final_witness"
+  },
+  "summaries": [
+    {
+      "final_A_d_iqr": [
+        176.0,
+        176.0
+      ],
+      "final_A_d_median": 176.0,
+      "final_A_d_min": 176,
+      "mean_elapsed_ms": 10907.0485,
+      "objective": "d_min_only",
+      "runs": 50,
+      "target_achieved": 50
+    },
+    {
+      "final_A_d_iqr": [
+        176.0,
+        176.0
+      ],
+      "final_A_d_median": 176.0,
+      "final_A_d_min": 176,
+      "mean_elapsed_ms": 11044.90638,
+      "objective": "d_min_a_d",
+      "runs": 50,
+      "target_achieved": 50
+    }
+  ]
+}

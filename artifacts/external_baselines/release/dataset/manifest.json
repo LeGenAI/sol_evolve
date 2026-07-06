@@ -1,0 +1,81 @@
+{
+  "args": {
+    "artifact_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/artifacts/reviewer_core_claims.json",
+    "cadical_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/cadical/build/cadical",
+    "candidates_per_seed": 1,
+    "corrupt_bits_per_column": 1,
+    "corrupt_column_counts": "1,2,3,4",
+    "frontier_seed_timeout_sec": 10,
+    "generations": 50,
+    "include_successful": false,
+    "k": 11,
+    "max_d": 6,
+    "min_d": 5,
+    "n": 22,
+    "out_dir": "sol_evolve/artifacts/external_baselines/repair_policy_dataset_corrupt_main",
+    "perturb_rate": 0.02,
+    "perturb_rates": null,
+    "population": 100,
+    "progress_every": 5,
+    "repair_interval": 50,
+    "runs": 240,
+    "seed_start": 1000,
+    "source_mode": "corrupt",
+    "target_d": 7,
+    "train_frac": 0.4,
+    "validation_frac": 0.2
+  },
+  "below_target_count_summary": {
+    "max": 47.0,
+    "mean": 29.83783783783784,
+    "median": 28.0,
+    "min": 16.0
+  },
+  "candidate_jsonl": "sol_evolve/artifacts/external_baselines/repair_policy_dataset_corrupt_main/candidates.jsonl",
+  "claim_id": "binary_22_11_7_hybrid_ga",
+  "created_at": "2026-07-06T08:47:28.135077+00:00",
+  "d_min_by_split": {
+    "test": {
+      "5": 68,
+      "6": 22
+    },
+    "train": {
+      "5": 60,
+      "6": 28
+    },
+    "validation": {
+      "5": 30,
+      "6": 14
+    }
+  },
+  "d_min_counts": {
+    "5": 158,
+    "6": 64
+  },
+  "description": "Frozen candidate bank for EoH/FunSearch/SolEvolve repair-policy comparison.",
+  "important_limits": [
+    "Generated policies may train only on split=train and tune on split=validation.",
+    "Final paper comparisons must be reported on split=test.",
+    "This dataset stores candidate matrices because the deterministic verifier is the evaluation authority."
+  ],
+  "low_weight_count_summary": {
+    "max": 47.0,
+    "mean": 29.83783783783784,
+    "median": 28.0,
+    "min": 16.0
+  },
+  "source_counts": {
+    "corrupted_verified_witness": 222
+  },
+  "split_counts": {
+    "test": 90,
+    "train": 88,
+    "validation": 44
+  },
+  "target": {
+    "d": 7,
+    "k": 11,
+    "n": 22
+  },
+  "total_candidates": 222
+}

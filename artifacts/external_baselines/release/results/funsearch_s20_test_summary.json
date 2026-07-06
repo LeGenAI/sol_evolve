@@ -1,0 +1,47 @@
+{
+  "args": {
+    "cadical_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/cadical/build/cadical",
+    "dataset": "sol_evolve/artifacts/external_baselines/repair_policy_dataset_corrupt_main/candidates.jsonl",
+    "k": 11,
+    "max_cases": null,
+    "mutable_budget": 4,
+    "n": 22,
+    "out_dir": "sol_evolve/artifacts/external_baselines/funsearch_s20_corrupt_main_test_budget4_t10",
+    "policy_json": "sol_evolve/artifacts/external_baselines/funsearch_repair_policy_corrupt_main_s20/samples_best.json",
+    "policy_name": "funsearch_best",
+    "split": "test",
+    "target_d": 7,
+    "timeout_sec": 10.0
+  },
+  "candidate_count": 90,
+  "config": {
+    "expected_a_d": null,
+    "k": 11,
+    "keep_cnf": false,
+    "mutable_budget": 4,
+    "n": 22,
+    "quiet": true,
+    "solver_type": "cadical",
+    "target_d": 7,
+    "timeout_sec": 10.0
+  },
+  "created_at": "2026-07-06T11:59:55.476554+00:00",
+  "description": "Held-out evaluation for generated repair-policy code.",
+  "policy_algorithm": "FunSearch bounded repair-policy program",
+  "policy_objective": 24023.143715416667,
+  "raw_records": "sol_evolve/artifacts/external_baselines/funsearch_s20_corrupt_main_test_budget4_t10/raw_policy_records.jsonl",
+  "summary": {
+    "mean_elapsed_ms": 2089.1269555555555,
+    "mean_mutable_columns": 4.0,
+    "median_elapsed_ms": 2287.48,
+    "median_mutable_columns": 4.0,
+    "solver_status_counts": {
+      "UNSAT": 90
+    },
+    "success_rate": 0.0,
+    "successes": 0,
+    "total": 90,
+    "wilson_95_high": 0.04093562556432678,
+    "wilson_95_low": 0.0
+  }
+}

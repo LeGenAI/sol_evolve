@@ -179,6 +179,29 @@ def _mutable_columns_from_low_weight_supports(
     return sorted(columns) or list(range(k, n))
 
 
+def _repair_attempt_plan(
+    *,
+    policy: HybridGAPolicy,
+    mutable_columns: list[int],
+    k: int = TARGET_K,
+    n: int = TARGET_N,
+) -> list[tuple[str, list[int]]]:
+    all_parity_columns = list(range(k, n))
+    strategy = (policy.repair_strategy or "low_weight_support_mask").strip().lower()
+    if strategy in {"low_weight_support_mask", "low_weight_support_mask_with_fallback", "support_then_all"}:
+        return [("low_weight_support_mask", mutable_columns), ("all_parity_columns", all_parity_columns)]
+    if strategy in {"low_weight_support_mask_only", "support_only"}:
+        return [("low_weight_support_mask", mutable_columns)]
+    if strategy in {"random_support_size_mask", "random_mask", "random_support_size"}:
+        sample_size = min(len(mutable_columns), len(all_parity_columns))
+        rng = np.random.default_rng(policy.seed)
+        columns = sorted(int(item) for item in rng.choice(all_parity_columns, size=sample_size, replace=False).tolist())
+        return [("random_support_size_mask", columns)]
+    if strategy in {"all_parity_columns", "all_parity", "global_repair"}:
+        return [("all_parity_columns", all_parity_columns)]
+    return []
+
+
 def _diagnostics_for_actual_min(matrix: list[list[int]], *, n: int = TARGET_N, k: int = TARGET_K) -> dict[str, Any]:
     rough = verify_binary_linear_code(matrix=matrix, n=n, k=k, d=1, expected_a_d=None)
     actual_d = int(rough.get("minimum_distance") or 0)
@@ -249,8 +272,15 @@ def _write_seed_bank(
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+# GA selection objective. "d_min_a_d" is the production objective; "d_min_only"
+# drops the minimum-weight-count term and exists for the objective ablation.
+SCORE_OBJECTIVE = "d_min_a_d"
+
+
 def _score(diagnostics: dict[str, Any]) -> float:
     d_min = diagnostics.get("minimum_distance") or 0
+    if SCORE_OBJECTIVE == "d_min_only":
+        return float(d_min * 10_000)
     a_d = diagnostics.get("A_d")
     if a_d is None:
         a_d = 10**9
@@ -939,12 +969,21 @@ def attempt_sat_repair(
             post_repair_diagnostics=None,
         )
     mutable_columns = _mutable_columns_from_low_weight_supports(candidate, target_d, n=n, k=k)
+    attempt_plan = _repair_attempt_plan(policy=policy, mutable_columns=mutable_columns, k=k, n=n)
+    if not attempt_plan:
+        return HybridGARepairEvent(
+            generation=generation,
+            candidate_id=_candidate_id(candidate),
+            pre_repair_diagnostics=diagnostics,
+            mutable_columns=mutable_columns,
+            solver_status=f"INVALID_REPAIR_STRATEGY:{policy.repair_strategy}",
+            elapsed_ms=round((time.perf_counter() - started) * 1000, 3),
+            post_repair_diagnostics=None,
+        )
     workdir = Path(artifact_dir) / "hybrid_ga" / claim_id / "sat_repair"
     workdir.mkdir(parents=True, exist_ok=True)
-    for attempt_name, columns in (
-        ("low_weight_support_mask", mutable_columns),
-        ("all_parity_columns", list(range(k, n))),
-    ):
+    result: dict[str, Any] = {"status": "UNKNOWN"}
+    for attempt_name, columns in attempt_plan:
         encoder = CNFEncoder(n, k, target_d, systematic=True)
         encoder.encode_all_constraints()
         fixed_columns = [col for col in range(k, n) if col not in set(columns)]

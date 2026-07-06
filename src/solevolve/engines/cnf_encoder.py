@@ -427,7 +427,7 @@ class CNFEncoder:
 
         print(f"  추가된 제약: {parity_cols}개 열에 대한 XOR = 1")
 
-    def encode_all_constraints(self, include_all_one=False):
+    def encode_all_constraints(self, include_all_one=False, add_symmetry_breaking=True):
         """
         모든 제약 조건을 인코딩하는 메인 함수.
 
@@ -435,11 +435,14 @@ class CNFEncoder:
         ----------
         include_all_one : bool
             All-one vector 제약 포함 여부 (default: False)
+        add_symmetry_breaking : bool
+            대칭성 파괴 제약 포함 여부 (default: True)
         """
         print(f"\n{'='*60}")
         print(f"CNF 인코딩 시작: [{self.n}, {self.k}, {self.d_min}] 코드")
         print(f"Systematic form: {self.systematic}")
         print(f"All-one constraint: {include_all_one}")
+        print(f"Symmetry breaking: {add_symmetry_breaking}")
         print(f"{'='*60}\n")
 
         # 최소 거리 제약 (가장 중요)
@@ -450,7 +453,8 @@ class CNFEncoder:
             self.encode_all_one_vector_constraint()
 
         # 대칭성 파괴 (선택적)
-        self.add_symmetry_breaking_constraints()
+        if add_symmetry_breaking:
+            self.add_symmetry_breaking_constraints()
 
         print(f"\n인코딩 완료!")
         print(f"총 변수 수: {self.var_counter - 1}")

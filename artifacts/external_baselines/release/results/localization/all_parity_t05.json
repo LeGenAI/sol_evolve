@@ -1,0 +1,51 @@
+{
+  "args": {
+    "cadical_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/cadical/build/cadical",
+    "dataset": "sol_evolve/artifacts/external_baselines/repair_policy_dataset_corrupt_main/candidates.jsonl",
+    "k": 11,
+    "keep_cnf": false,
+    "max_cases": null,
+    "mutable_budget": 4,
+    "n": 22,
+    "out_dir": "sol_evolve/artifacts/external_baselines/corrupt_main_test_allparity_t05",
+    "policies": "all_parity",
+    "seed": 0,
+    "split": "test",
+    "target_d": 7,
+    "timeout_sec": 0.5
+  },
+  "config": {
+    "expected_a_d": null,
+    "k": 11,
+    "keep_cnf": false,
+    "mutable_budget": 4,
+    "n": 22,
+    "quiet": true,
+    "solver_type": "cadical",
+    "target_d": 7,
+    "timeout_sec": 0.5
+  },
+  "created_at": "2026-07-06T12:13:04.829770+00:00",
+  "dataset_size_after_split": 90,
+  "description": "Fixed-policy pilot for the verifier-facing repair-policy baseline interface.",
+  "paired_comparisons": [],
+  "raw_records": "sol_evolve/artifacts/external_baselines/corrupt_main_test_allparity_t05/raw_policy_records.jsonl",
+  "summaries": [
+    {
+      "mean_elapsed_ms": 1296.3121777777778,
+      "mean_mutable_columns": 11.0,
+      "median_elapsed_ms": 1289.3365,
+      "median_mutable_columns": 11.0,
+      "policy": "all_parity",
+      "solver_status_counts": {
+        "TIMEOUT": 90
+      },
+      "success_rate": 0.0,
+      "successes": 0,
+      "total": 90,
+      "wilson_95_high": 0.04093562556432678,
+      "wilson_95_low": 0.0
+    }
+  ],
+  "summary_csv": "sol_evolve/artifacts/external_baselines/corrupt_main_test_allparity_t05/summary.csv"
+}

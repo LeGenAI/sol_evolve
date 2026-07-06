@@ -1,0 +1,78 @@
+{
+  "args": {
+    "cadical_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/cadical/build/cadical",
+    "dataset": "sol_evolve/artifacts/external_baselines/repair_policy_dataset_corrupt_main/candidates.jsonl",
+    "k": 11,
+    "keep_cnf": false,
+    "max_cases": null,
+    "mutable_budget": 2,
+    "n": 22,
+    "out_dir": "sol_evolve/artifacts/external_baselines/corrupt_main_test_budget2_t10",
+    "policies": "random,low_weight_support",
+    "seed": 0,
+    "split": "test",
+    "target_d": 7,
+    "timeout_sec": 10.0
+  },
+  "config": {
+    "expected_a_d": null,
+    "k": 11,
+    "keep_cnf": false,
+    "mutable_budget": 2,
+    "n": 22,
+    "quiet": true,
+    "solver_type": "cadical",
+    "target_d": 7,
+    "timeout_sec": 10.0
+  },
+  "created_at": "2026-07-06T12:14:05.651595+00:00",
+  "dataset_size_after_split": 90,
+  "description": "Fixed-policy pilot for the verifier-facing repair-policy baseline interface.",
+  "paired_comparisons": [
+    {
+      "mcnemar_exact_p": 1.0,
+      "paired_total": 90,
+      "policy": "low_weight_support",
+      "policy_only_successes": 0,
+      "policy_successes": 0,
+      "reference": "random",
+      "reference_only_successes": 0,
+      "reference_successes": 0,
+      "risk_difference": 0.0
+    }
+  ],
+  "raw_records": "sol_evolve/artifacts/external_baselines/corrupt_main_test_budget2_t10/raw_policy_records.jsonl",
+  "summaries": [
+    {
+      "mean_elapsed_ms": 982.0301555555557,
+      "mean_mutable_columns": 2.0,
+      "median_elapsed_ms": 979.914,
+      "median_mutable_columns": 2.0,
+      "policy": "random",
+      "solver_status_counts": {
+        "UNSAT": 90
+      },
+      "success_rate": 0.0,
+      "successes": 0,
+      "total": 90,
+      "wilson_95_high": 0.04093562556432678,
+      "wilson_95_low": 0.0
+    },
+    {
+      "mean_elapsed_ms": 984.4348666666667,
+      "mean_mutable_columns": 2.0,
+      "median_elapsed_ms": 981.3109999999999,
+      "median_mutable_columns": 2.0,
+      "policy": "low_weight_support",
+      "solver_status_counts": {
+        "UNSAT": 90
+      },
+      "success_rate": 0.0,
+      "successes": 0,
+      "total": 90,
+      "wilson_95_high": 0.04093562556432678,
+      "wilson_95_low": 0.0
+    }
+  ],
+  "summary_csv": "sol_evolve/artifacts/external_baselines/corrupt_main_test_budget2_t10/summary.csv"
+}

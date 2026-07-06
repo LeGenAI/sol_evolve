@@ -1,0 +1,205 @@
+{
+  "args": {
+    "cadical_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/cadical/build/cadical",
+    "instances": "22_11_7,43_10_16",
+    "out_dir": "sol_evolve/artifacts/external_baselines/encoding_ablation_main",
+    "repeats": 3,
+    "variants": "production,no_symmetry,non_systematic,with_all_one"
+  },
+  "created_at": "2026-07-06T13:58:03.353270+00:00",
+  "description": "Encoding-choice ablation on direct [n,k,d] feasibility queries (CaDiCaL).",
+  "records": [
+    {
+      "clauses": 1459754,
+      "encode_ms": 855.538,
+      "instance": "22_11_7",
+      "options": {
+        "all_one": false,
+        "symmetry": true,
+        "systematic": true
+      },
+      "solve_ms_median": 8719.253,
+      "solve_ms_runs": [
+        8719.253,
+        8694.943,
+        8734.178
+      ],
+      "statuses": [
+        "SAT",
+        "SAT",
+        "SAT"
+      ],
+      "timeout_sec": 60,
+      "variables": 396276,
+      "variant": "production"
+    },
+    {
+      "clauses": 1459753,
+      "encode_ms": 849.642,
+      "instance": "22_11_7",
+      "options": {
+        "all_one": false,
+        "symmetry": false,
+        "systematic": true
+      },
+      "solve_ms_median": 9226.203,
+      "solve_ms_runs": [
+        9216.666,
+        9448.741,
+        9226.203
+      ],
+      "statuses": [
+        "SAT",
+        "SAT",
+        "SAT"
+      ],
+      "timeout_sec": 60,
+      "variables": 396276,
+      "variant": "no_symmetry"
+    },
+    {
+      "clauses": 1842784,
+      "encode_ms": 1025.125,
+      "instance": "22_11_7",
+      "options": {
+        "all_one": false,
+        "symmetry": true,
+        "systematic": false
+      },
+      "solve_ms_median": 60035.91,
+      "solve_ms_runs": [
+        60035.91,
+        60035.624,
+        60038.035
+      ],
+      "statuses": [
+        "TIMEOUT",
+        "TIMEOUT",
+        "TIMEOUT"
+      ],
+      "timeout_sec": 60,
+      "variables": 475267,
+      "variant": "non_systematic"
+    },
+    {
+      "clauses": 1460205,
+      "encode_ms": 816.449,
+      "instance": "22_11_7",
+      "options": {
+        "all_one": true,
+        "symmetry": true,
+        "systematic": true
+      },
+      "solve_ms_median": 60015.397,
+      "solve_ms_runs": [
+        60017.268,
+        60015.397,
+        60015.023
+      ],
+      "statuses": [
+        "TIMEOUT",
+        "TIMEOUT",
+        "TIMEOUT"
+      ],
+      "timeout_sec": 60,
+      "variables": 396386,
+      "variant": "with_all_one"
+    },
+    {
+      "clauses": 2815957,
+      "encode_ms": 1428.638,
+      "instance": "43_10_16",
+      "options": {
+        "all_one": false,
+        "symmetry": true,
+        "systematic": true
+      },
+      "solve_ms_median": 9829.586,
+      "solve_ms_runs": [
+        9829.586,
+        9779.744,
+        9874.408
+      ],
+      "statuses": [
+        "SAT",
+        "SAT",
+        "SAT"
+      ],
+      "timeout_sec": 300,
+      "variables": 726825,
+      "variant": "production"
+    },
+    {
+      "clauses": 2815956,
+      "encode_ms": 1601.241,
+      "instance": "43_10_16",
+      "options": {
+        "all_one": false,
+        "symmetry": false,
+        "systematic": true
+      },
+      "solve_ms_median": 10289.029,
+      "solve_ms_runs": [
+        10290.568,
+        10210.976,
+        10289.029
+      ],
+      "statuses": [
+        "SAT",
+        "SAT",
+        "SAT"
+      ],
+      "timeout_sec": 300,
+      "variables": 726825,
+      "variant": "no_symmetry"
+    },
+    {
+      "clauses": 2969606,
+      "encode_ms": 1530.049,
+      "instance": "43_10_16",
+      "options": {
+        "all_one": false,
+        "symmetry": true,
+        "systematic": false
+      },
+      "solve_ms_median": 212312.356,
+      "solve_ms_runs": [
+        212206.89,
+        212312.356,
+        212587.947
+      ],
+      "statuses": [
+        "SAT",
+        "SAT",
+        "SAT"
+      ],
+      "timeout_sec": 300,
+      "variables": 757665,
+      "variant": "non_systematic"
+    },
+    {
+      "clauses": 2817178,
+      "encode_ms": 1439.019,
+      "instance": "43_10_16",
+      "options": {
+        "all_one": true,
+        "symmetry": true,
+        "systematic": true
+      },
+      "solve_ms_median": 300025.632,
+      "solve_ms_runs": [
+        300088.861,
+        300025.358,
+        300025.632
+      ],
+      "statuses": [
+        "TIMEOUT",
+        "TIMEOUT",
+        "TIMEOUT"
+      ],
+      "timeout_sec": 300,
+      "variables": 727122,
+      "variant": "with_all_one"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "algorithm": "FunSearch bounded repair-policy program",
+  "code": "def score_columns(column_features: np.ndarray, global_features: np.ndarray) -> np.ndarray:\n  \"\"\"Score parity columns for bounded SAT repair.\n\n  Args:\n    column_features: shape (m, 12). Columns are:\n      0 column_index,\n      1 parity_position,\n      2 normalized_parity_position,\n      3 matrix_column_weight,\n      4 low_support_count,\n      5 low_support_fraction,\n      6 min_low_weight_touching_column,\n      7 mean_low_weight_touching_column,\n      8 weight_deficit_sum_touching_column,\n      9 column_pattern_fraction,\n      10 target_gap,\n      11 low_weight_count.\n    global_features: [n, k, target_d, d_min, target_gap, low_weight_count,\n      below_target_count, parity_column_count].\n  Returns:\n    One score per parity column. Higher-scoring columns are made mutable.\n  \"\"\"\n  return column_features[:, 4] + 0.1 * column_features[:, 8]\n\n",
+  "objective": 24024.54863041667
+}
