@@ -154,22 +154,6 @@ Toggles the encoder options (systematic form, symmetry breaking, all-one
 constraint) on direct [n,k,d] feasibility queries and records variables, clauses,
 and CaDiCaL solve time/status.
 
-### 9. Reflector decision-policy replay (deterministic)
-
-```bash
-.venv/bin/python scripts/run_reflector_replay_ablation.py \
-  --runs 30 --horizon 150 \
-  --out-dir artifacts/external_baselines/reflector_replay_n30_h150
-```
-
-Re-runs the deterministic [22,11,7] GA proxy with per-generation logging and
-replays alternative repair-trigger policies (production threshold chain with and
-without the diversity guard, d_min-only stagnation, fixed schedules, random
-control) on identical trajectories. The candidate at each trigger generation is
-actually repaired with all-parity SAT (30 s), so end-to-end costs are measured.
-This is a decision-level replay: post-intervention trajectory changes are out of
-scope by construction.
-
 ## Tier 2: Re-running the evolution (optional, requires OPENROUTER_API_KEY)
 
 The adapters import the *public* upstream implementations from a sibling directory

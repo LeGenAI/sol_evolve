@@ -63,9 +63,6 @@ BUNDLE = [
     ("ad_objective_22_11_7_n50_p100_g100/records.jsonl", "results/ad_objective/22_11_7_records.jsonl"),
     # Encoding-choice ablation
     ("encoding_ablation_main/summary.json", "results/encoding/summary.json"),
-    # Reflector decision-policy replay (trigger candidates verified by actual SAT repair)
-    ("reflector_replay_n30_h150/summary.json", "results/reflector_replay/summary.json"),
-    ("reflector_replay_n30_h150/records.jsonl", "results/reflector_replay/records.jsonl"),
     # Monte Carlo power analysis quoted in the manuscript (seeded, deterministic)
     ("power_analysis_mcnemar/summary.json", "results/power_analysis_mcnemar.json"),
 ]
