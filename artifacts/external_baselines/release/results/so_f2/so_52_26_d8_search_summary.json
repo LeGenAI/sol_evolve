@@ -1,0 +1,55 @@
+{
+  "args": {
+    "cadical_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/cadical/build/cadical",
+    "iterations": 400000,
+    "out_dir": "sol_evolve/artifacts/external_baselines/so_52_26_d8_search",
+    "restarts": 8,
+    "sat_seeds": 4,
+    "seed": 2026
+  },
+  "attempts": [
+    {
+      "deficit": 0,
+      "restart": 0,
+      "violations": 0
+    }
+  ],
+  "created_at": "2026-07-07T01:17:17.451958+00:00",
+  "description": "Gram-preserving transvection annealing for a [52,26] SO embedding with d>=8.",
+  "low_weight_base_counts": {
+    "3": 155,
+    "4": 1085,
+    "5": 5208,
+    "6": 22568,
+    "7": 82615
+  },
+  "matrix_path": "sol_evolve/artifacts/external_baselines/so_52_26_d8_search/so_52_26_d8_matrix.json",
+  "verification": {
+    "d_min": 8,
+    "self_orthogonal": true,
+    "weight_distribution": {
+      "0": 1,
+      "8": 29,
+      "10": 420,
+      "12": 6305,
+      "14": 52576,
+      "16": 307938,
+      "18": 1273584,
+      "20": 3756637,
+      "22": 8057248,
+      "24": 12706306,
+      "26": 14786776,
+      "28": 12706306,
+      "30": 8057248,
+      "32": 3756637,
+      "34": 1273584,
+      "36": 307938,
+      "38": 52576,
+      "40": 6305,
+      "42": 420,
+      "44": 29,
+      "52": 1
+    }
+  },
+  "witness_found": true
+}

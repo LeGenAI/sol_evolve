@@ -67,7 +67,8 @@ BUNDLE = [
     ("power_analysis_mcnemar/summary.json", "results/power_analysis_mcnemar.json"),
     # Binary SO embeddings of the SO table (reconstruction + independent verification)
     ("so_f2_reconstruction/summary.json", "results/so_f2/summary.json"),
-    ("so_f2_reconstruction/so_52_26_sol1_matrix.json", "results/so_f2/so_52_26_d6_matrix.json"),
+    ("so_52_26_d8_search/summary.json", "results/so_f2/so_52_26_d8_search_summary.json"),
+    ("so_52_26_d8_search/so_52_26_d8_matrix.json", "results/so_f2/so_52_26_d8_matrix.json"),
     # Lucas partition feasibility incl. the UNSAT rows
     ("lucas_partition_feasibility/summary.json", "results/lucas_partition_feasibility.json"),
 ]

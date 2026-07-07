@@ -170,11 +170,24 @@ Reconstructs the two binary rows of the manuscript's SO table from scratch:
   independently re-verified (Gram = 0, d_min = 6); the d>=7 obligation for the
   same fixed base is UNSAT.
 - `52_26`: appends t=21 = rank(GG^T) columns to the [31,26,3] Hamming code under
-  the self-orthogonality constraint (distance constraints are out of reach at
-  k=26); enumerated solutions are verified exactly via meet-in-the-middle
-  enumeration of all 2^26 codewords. The best verified embedding attains
-  d_min = 6 (frozen in the release bundle); the manuscript reports this
-  evidence-backed value.
+  the self-orthogonality constraint; enumerated solutions are verified exactly
+  via meet-in-the-middle enumeration of all 2^26 codewords. Distance-constrained
+  SAT is out of reach at k=26, so the manuscript's d_min = 8 witness is
+  re-derived by the companion search:
+
+```bash
+.venv/bin/python scripts/search_52_26_d8_so_embedding.py \
+  --out-dir artifacts/external_baselines/so_52_26_d8_search
+```
+
+  The search moves through the exact solution space of S S^T = G G^T with
+  Gram-preserving orthogonal-transvection steps (S -> S + (S u) u^T for
+  even-weight u) and anneals the count of codewords below weight 8; only the
+  111,631 messages whose base codeword weight is <= 7 can violate d >= 8, so
+  each candidate evaluates with one mod-2 matrix product. Expected: a witness
+  with d_min = 8, A_8 = 29, self-complementary weight distribution, verified
+  exhaustively and frozen in the release bundle. The rank-one sweep in the same
+  reconstruction summary shows Algorithm 1 alone attains t = 21 but d_min = 4.
 
 ### 10. Lucas partition feasibility, including the UNSAT rows (deterministic)
 
