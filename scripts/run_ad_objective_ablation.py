@@ -57,6 +57,11 @@ def parse_args() -> argparse.Namespace:
         default=str(REPO_ROOT / "artifacts" / "reviewer_core_claims.json"),
         help="Reviewer core-claims JSON with archived witnesses.",
     )
+    parser.add_argument(
+        "--seed-matrix-json",
+        default=None,
+        help="Optional path to an explicit seed generator matrix (overrides the archived witness).",
+    )
     parser.add_argument("--out-dir", required=True)
     return parser.parse_args()
 
@@ -95,7 +100,11 @@ def main() -> None:
     if unknown:
         raise SystemExit(f"unknown objectives: {sorted(unknown)}")
 
-    seed_matrix, seed_meta = load_seed_matrix(args.instance, Path(args.artifact_path))
+    if args.seed_matrix_json:
+        seed_matrix = json.loads(Path(args.seed_matrix_json).read_text())
+        seed_meta = {"source": args.seed_matrix_json}
+    else:
+        seed_matrix, seed_meta = load_seed_matrix(args.instance, Path(args.artifact_path))
     seed_diag = _diagnostics(seed_matrix, n=n, k=k, d=d, expected_a_d=None)
     if int(seed_diag.get("minimum_distance") or 0) < d:
         raise SystemExit(f"seed matrix has d_min={seed_diag.get('minimum_distance')} < target {d}")
