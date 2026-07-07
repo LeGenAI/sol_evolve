@@ -1,0 +1,50 @@
+{
+  "args": {
+    "alpha": 0.05,
+    "baseline": 0.07777777777777778,
+    "n": 90,
+    "out_json": "sol_evolve/artifacts/external_baselines/power_analysis_mcnemar/summary.json",
+    "seed": 2026,
+    "sims": 20000,
+    "variant_rates": "0.10,0.15,0.178,0.20,0.228,0.25,0.30"
+  },
+  "created_at": "2026-07-07T00:01:33.717842+00:00",
+  "description": "Monte Carlo power of two-sided exact McNemar at alpha vs the random baseline, independent per-case outcomes.",
+  "rows": [
+    {
+      "difference_pp": 2.2,
+      "power": 0.0487,
+      "variant_rate": 0.1
+    },
+    {
+      "difference_pp": 7.2,
+      "power": 0.2505,
+      "variant_rate": 0.15
+    },
+    {
+      "difference_pp": 10.0,
+      "power": 0.4395,
+      "variant_rate": 0.178
+    },
+    {
+      "difference_pp": 12.2,
+      "power": 0.58205,
+      "variant_rate": 0.2
+    },
+    {
+      "difference_pp": 15.0,
+      "power": 0.7461,
+      "variant_rate": 0.228
+    },
+    {
+      "difference_pp": 17.2,
+      "power": 0.8478,
+      "variant_rate": 0.25
+    },
+    {
+      "difference_pp": 22.2,
+      "power": 0.9638,
+      "variant_rate": 0.3
+    }
+  ]
+}

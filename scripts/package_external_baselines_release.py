@@ -66,6 +66,8 @@ BUNDLE = [
     # Reflector decision-policy replay (trigger candidates verified by actual SAT repair)
     ("reflector_replay_n30_h150/summary.json", "results/reflector_replay/summary.json"),
     ("reflector_replay_n30_h150/records.jsonl", "results/reflector_replay/records.jsonl"),
+    # Monte Carlo power analysis quoted in the manuscript (seeded, deterministic)
+    ("power_analysis_mcnemar/summary.json", "results/power_analysis_mcnemar.json"),
 ]
 
 

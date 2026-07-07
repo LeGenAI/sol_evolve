@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-07-06T14:42:19.103467+00:00",
+  "created_at": "2026-07-07T00:02:15.006694+00:00",
   "description": "Reviewer-facing bundle for the common-interface FunSearch/EoH repair-policy benchmark.",
   "files": [
     {
@@ -217,6 +217,12 @@
       "path": "results/reflector_replay/records.jsonl",
       "sha256": "68e4932f7b074c31b4bf65c8ee7a277f87b1e08023a871b8787c798f6aef0870",
       "source": "artifacts/external_baselines/reflector_replay_n30_h150/records.jsonl"
+    },
+    {
+      "bytes": 1120,
+      "path": "results/power_analysis_mcnemar.json",
+      "sha256": "b988b8b5781fde6df33ff97d6e9c078e3b4574e52cf79aed2b0f7eff5b6981f5",
+      "source": "artifacts/external_baselines/power_analysis_mcnemar/summary.json"
     }
   ],
   "missing_at_packaging_time": [],
