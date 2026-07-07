@@ -65,6 +65,11 @@ BUNDLE = [
     ("encoding_ablation_main/summary.json", "results/encoding/summary.json"),
     # Monte Carlo power analysis quoted in the manuscript (seeded, deterministic)
     ("power_analysis_mcnemar/summary.json", "results/power_analysis_mcnemar.json"),
+    # Binary SO embeddings of the SO table (reconstruction + independent verification)
+    ("so_f2_reconstruction/summary.json", "results/so_f2/summary.json"),
+    ("so_f2_reconstruction/so_52_26_sol1_matrix.json", "results/so_f2/so_52_26_d6_matrix.json"),
+    # Lucas partition feasibility incl. the UNSAT rows
+    ("lucas_partition_feasibility/summary.json", "results/lucas_partition_feasibility.json"),
 ]
 
 

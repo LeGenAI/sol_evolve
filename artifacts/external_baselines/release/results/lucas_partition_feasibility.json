@@ -1,0 +1,97 @@
+{
+  "all_statuses_match": true,
+  "args": {
+    "cadical_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/cadical/build/cadical",
+    "instances": "7_4,7_3,7_2,15_2,15_3,15_4",
+    "keep_cnf": false,
+    "out_dir": "sol_evolve/artifacts/external_baselines/lucas_partition_feasibility"
+  },
+  "created_at": "2026-07-07T00:25:56.752506+00:00",
+  "description": "SAT feasibility reproduction for generalized Lucas cube perfect partitions (exactly-one ball-cover encoding, CaDiCaL).",
+  "records": [
+    {
+      "clauses": 2269,
+      "encode_ms": 0.994,
+      "instance": "Lambda_7(1^4)",
+      "manuscript_status": "SAT",
+      "n": 7,
+      "s": 4,
+      "solve_ms": 6.002,
+      "solver_status": "SAT",
+      "status_matches_manuscript": true,
+      "timeout_sec": 60,
+      "variables": 99,
+      "vertices": 99
+    },
+    {
+      "clauses": 1303,
+      "encode_ms": 0.756,
+      "instance": "Lambda_7(1^3)",
+      "manuscript_status": "UNSAT",
+      "n": 7,
+      "s": 3,
+      "solve_ms": 3.696,
+      "solver_status": "UNSAT",
+      "status_matches_manuscript": true,
+      "timeout_sec": 60,
+      "variables": 71,
+      "vertices": 71
+    },
+    {
+      "clauses": 316,
+      "encode_ms": 0.346,
+      "instance": "Lambda_7(1^2)",
+      "manuscript_status": "UNSAT",
+      "n": 7,
+      "s": 2,
+      "solve_ms": 3.35,
+      "solver_status": "UNSAT",
+      "status_matches_manuscript": true,
+      "timeout_sec": 60,
+      "variables": 29,
+      "vertices": 29
+    },
+    {
+      "clauses": 55409,
+      "encode_ms": 29.207,
+      "instance": "Lambda_15(1^2)",
+      "manuscript_status": "UNSAT",
+      "n": 15,
+      "s": 2,
+      "solve_ms": 76.346,
+      "solver_status": "UNSAT",
+      "status_matches_manuscript": true,
+      "timeout_sec": 300,
+      "variables": 1364,
+      "vertices": 1364
+    },
+    {
+      "clauses": 684147,
+      "encode_ms": 386.445,
+      "instance": "Lambda_15(1^3)",
+      "manuscript_status": "UNSAT",
+      "n": 15,
+      "s": 3,
+      "solve_ms": 3026.966,
+      "solver_status": "UNSAT",
+      "status_matches_manuscript": true,
+      "timeout_sec": 1800,
+      "variables": 9327,
+      "vertices": 9327
+    },
+    {
+      "clauses": 1752182,
+      "encode_ms": 914.344,
+      "instance": "Lambda_15(1^4)",
+      "manuscript_status": "UNSAT",
+      "n": 15,
+      "s": 4,
+      "solve_ms": 779586.907,
+      "solver_status": "UNSAT",
+      "status_matches_manuscript": true,
+      "timeout_sec": 3600,
+      "variables": 18842,
+      "vertices": 18842
+    }
+  ]
+}

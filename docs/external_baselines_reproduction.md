@@ -154,6 +154,39 @@ Toggles the encoder options (systematic form, symmetry breaking, all-one
 constraint) on direct [n,k,d] feasibility queries and records variables, clauses,
 and CaDiCaL solve time/status.
 
+### 9. Binary (GF(2)) self-orthogonal embeddings of the SO table (deterministic)
+
+```bash
+.venv/bin/python scripts/reconstruct_f2_so_embeddings.py \
+  --instances 22_11,52_26 --solutions 2 \
+  --out-dir artifacts/external_baselines/so_f2_reconstruction
+```
+
+Reconstructs the two binary rows of the manuscript's SO table from scratch:
+
+- `22_11`: appends t=7 columns to the [15,11,3] Hamming code under
+  self-orthogonality and d>=6 SAT constraints. Expected: SAT with an all-even
+  weight distribution {0:1, 6:77, 8:330, 10:616, 12:616, 14:330, 16:77, 22:1},
+  independently re-verified (Gram = 0, d_min = 6); the d>=7 obligation for the
+  same fixed base is UNSAT.
+- `52_26`: appends t=21 = rank(GG^T) columns to the [31,26,3] Hamming code under
+  the self-orthogonality constraint (distance constraints are out of reach at
+  k=26); enumerated solutions are verified exactly via meet-in-the-middle
+  enumeration of all 2^26 codewords. The best verified embedding attains
+  d_min = 6 (frozen in the release bundle); the manuscript reports this
+  evidence-backed value.
+
+### 10. Lucas partition feasibility, including the UNSAT rows (deterministic)
+
+```bash
+.venv/bin/python scripts/run_lucas_partition_feasibility.py \
+  --out-dir artifacts/external_baselines/lucas_partition_feasibility
+```
+
+Encodes "does a perfect radius-1 ball partition exist?" as an exactly-one SAT
+problem and reproduces the SAT/UNSAT statuses of the manuscript's Lucas table
+(vertex counts are asserted against the |V| column). Wall-clock re-measured.
+
 ## Tier 2: Re-running the evolution (optional, requires OPENROUTER_API_KEY)
 
 The adapters import the *public* upstream implementations from a sibling directory

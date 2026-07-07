@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-07-07T00:09:26.169738+00:00",
+  "created_at": "2026-07-07T00:26:20.640895+00:00",
   "description": "Reviewer-facing bundle for the common-interface FunSearch/EoH repair-policy benchmark.",
   "files": [
     {
@@ -211,6 +211,24 @@
       "path": "results/power_analysis_mcnemar.json",
       "sha256": "b988b8b5781fde6df33ff97d6e9c078e3b4574e52cf79aed2b0f7eff5b6981f5",
       "source": "artifacts/external_baselines/power_analysis_mcnemar/summary.json"
+    },
+    {
+      "bytes": 6889,
+      "path": "results/so_f2/summary.json",
+      "sha256": "f805ed1b25dad9d997d99b9b1db41e15a70e5d81d4cf51d1f607aec22daa3277",
+      "source": "artifacts/external_baselines/so_f2_reconstruction/summary.json"
+    },
+    {
+      "bytes": 4109,
+      "path": "results/so_f2/so_52_26_d6_matrix.json",
+      "sha256": "62a1ef0bdfbf59b57ca0a50fa50c1c7f9776c45e39a9c0b1497f2d16f686c0e4",
+      "source": "artifacts/external_baselines/so_f2_reconstruction/so_52_26_sol1_matrix.json"
+    },
+    {
+      "bytes": 2518,
+      "path": "results/lucas_partition_feasibility.json",
+      "sha256": "cee96157e4267b54f30dbd9504bde1f03546715b9a124cda1225960b0f17ad0d",
+      "source": "artifacts/external_baselines/lucas_partition_feasibility/summary.json"
     }
   ],
   "missing_at_packaging_time": [],
