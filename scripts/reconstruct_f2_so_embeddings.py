@@ -275,9 +275,72 @@ def gf2_rank(matrix: np.ndarray) -> int:
     return rank
 
 
+def rank_one_elimination(base: np.ndarray, *, pick: str = "first", hyper: str = "ei", rng=None) -> np.ndarray:
+    """Manuscript Algorithm 1 with the stated pivot freedom made explicit."""
+    k = base.shape[0]
+    residual = (base @ base.T) % 2
+    columns = []
+    while residual.any():
+        diag = np.flatnonzero(np.diag(residual))
+        if len(diag):
+            if pick == "first":
+                i = int(diag[0])
+            elif pick == "last":
+                i = int(diag[-1])
+            else:
+                i = int(rng.choice(diag))
+            v = residual[:, i].copy()
+        else:
+            pairs = np.argwhere(np.triu(residual, 1))
+            sel = pairs[0] if pick != "random" else pairs[rng.integers(0, len(pairs))]
+            i, j = map(int, sel)
+            v = np.zeros(k, dtype=np.uint8)
+            v[i] = 1
+            if hyper == "eij":
+                v[j] = 1
+        columns.append(v.astype(np.uint8))
+        residual = (residual + np.outer(v, v)) % 2
+    s = np.stack(columns, axis=1)
+    return np.concatenate([base, s], axis=1).astype(np.uint8)
+
+
+def run_rank_one_sweep(out_dir: Path) -> dict:
+    """(t, d_min) landscape of Algorithm 1 over pivot choices, for both Hamming bases."""
+    report: dict = {"instance": "rank_one_sweep", "results": []}
+    for r, label in ((4, "H4 [15,11,3]"), (5, "H5 [31,26,3]")):
+        base = hamming_generator(r)
+        configs: list[tuple[str, str, int | None]] = [
+            ("first", "ei", None),
+            ("last", "ei", None),
+            ("first", "eij", None),
+            ("last", "eij", None),
+        ]
+        for seed in range(6):
+            configs.append(("random", "ei", seed))
+            configs.append(("random", "eij", seed))
+        for pick, hyper, seed in configs:
+            rng = np.random.default_rng(seed) if seed is not None else None
+            ext = rank_one_elimination(base, pick=pick, hyper=hyper, rng=rng)
+            gram_zero = not ((ext @ ext.T) % 2).any()
+            d_min, _ = dmin_meet_in_middle(ext)
+            report["results"].append(
+                {
+                    "base": label,
+                    "pick": pick if seed is None else f"{pick}{seed}",
+                    "hyperbolic": hyper,
+                    "t": int(ext.shape[1] - base.shape[1]),
+                    "n": int(ext.shape[1]),
+                    "self_orthogonal": bool(gram_zero),
+                    "d_min": int(d_min),
+                }
+            )
+            print(f"[rank1] {label} {pick}{'' if seed is None else seed}/{hyper}: t={report['results'][-1]['t']} d_min={d_min}", file=sys.stderr)
+    return report
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--instances", default="22_11,52_26")
+    parser.add_argument("--instances", default="22_11,52_26,rank_one_sweep")
     parser.add_argument("--solutions", type=int, default=5, help="Blocked SS^T=M solutions to try for 52_26.")
     parser.add_argument("--cadical-path", default=str(REPO_ROOT / "cadical" / "build" / "cadical"))
     parser.add_argument("--out-dir", required=True)
@@ -294,6 +357,8 @@ def main() -> None:
             reports.append(run_22_11(out_dir, cadical))
         elif instance == "52_26":
             reports.append(run_52_26(out_dir, cadical, solutions=args.solutions))
+        elif instance == "rank_one_sweep":
+            reports.append(run_rank_one_sweep(out_dir))
         else:
             raise SystemExit(f"unknown instance {instance}")
 

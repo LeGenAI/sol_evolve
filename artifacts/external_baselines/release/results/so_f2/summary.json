@@ -1,16 +1,16 @@
 {
   "args": {
     "cadical_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/cadical/build/cadical",
-    "instances": "22_11,52_26",
+    "instances": "22_11,52_26,rank_one_sweep",
     "out_dir": "sol_evolve/artifacts/external_baselines/so_f2_reconstruction",
     "solutions": 2
   },
-  "created_at": "2026-07-07T00:19:19.339377+00:00",
+  "created_at": "2026-07-07T00:42:55.038649+00:00",
   "description": "Reconstruction and independent verification of the binary SO embeddings.",
   "reports": [
     {
       "base": "[15,11,3] Hamming H4",
-      "d6_solve_ms": 57.331,
+      "d6_solve_ms": 57.441,
       "d6_status": "SAT",
       "d6_verification": {
         "d_min": 6,
@@ -295,7 +295,7 @@
         }
       },
       "d7_obligation_status": "UNSAT",
-      "d7_solve_ms": 176.328,
+      "d7_solve_ms": 147.415,
       "instance": "22_11",
       "t": 7
     },
@@ -310,7 +310,7 @@
           "matrix_path": "sol_evolve/artifacts/external_baselines/so_f2_reconstruction/so_52_26_sol0_matrix.json",
           "n": 52,
           "self_orthogonal": true,
-          "solve_ms": 2503.814,
+          "solve_ms": 2341.791,
           "status": "SAT",
           "weight_distribution": {
             "0": 1,
@@ -347,7 +347,7 @@
           "matrix_path": "sol_evolve/artifacts/external_baselines/so_f2_reconstruction/so_52_26_sol1_matrix.json",
           "n": 52,
           "self_orthogonal": true,
-          "solve_ms": 3103.855,
+          "solve_ms": 2912.851,
           "status": "SAT",
           "weight_distribution": {
             "0": 1,
@@ -377,6 +377,299 @@
         }
       ],
       "t": 21
+    },
+    {
+      "instance": "rank_one_sweep",
+      "results": [
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 22,
+          "pick": "first",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 22,
+          "pick": "last",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 22,
+          "pick": "first",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 22,
+          "pick": "last",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 22,
+          "pick": "random0",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 22,
+          "pick": "random0",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 22,
+          "pick": "random1",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 22,
+          "pick": "random1",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 22,
+          "pick": "random2",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 22,
+          "pick": "random2",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 22,
+          "pick": "random3",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 22,
+          "pick": "random3",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 22,
+          "pick": "random4",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 22,
+          "pick": "random4",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 22,
+          "pick": "random5",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H4 [15,11,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 22,
+          "pick": "random5",
+          "self_orthogonal": true,
+          "t": 7
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 54,
+          "pick": "first",
+          "self_orthogonal": true,
+          "t": 23
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 52,
+          "pick": "last",
+          "self_orthogonal": true,
+          "t": 21
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 54,
+          "pick": "first",
+          "self_orthogonal": true,
+          "t": 23
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 52,
+          "pick": "last",
+          "self_orthogonal": true,
+          "t": 21
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 52,
+          "pick": "random0",
+          "self_orthogonal": true,
+          "t": 21
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 52,
+          "pick": "random0",
+          "self_orthogonal": true,
+          "t": 21
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 54,
+          "pick": "random1",
+          "self_orthogonal": true,
+          "t": 23
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 54,
+          "pick": "random1",
+          "self_orthogonal": true,
+          "t": 23
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 52,
+          "pick": "random2",
+          "self_orthogonal": true,
+          "t": 21
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 52,
+          "pick": "random2",
+          "self_orthogonal": true,
+          "t": 21
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 52,
+          "pick": "random3",
+          "self_orthogonal": true,
+          "t": 21
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 52,
+          "pick": "random3",
+          "self_orthogonal": true,
+          "t": 21
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 52,
+          "pick": "random4",
+          "self_orthogonal": true,
+          "t": 21
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 52,
+          "pick": "random4",
+          "self_orthogonal": true,
+          "t": 21
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "ei",
+          "n": 52,
+          "pick": "random5",
+          "self_orthogonal": true,
+          "t": 21
+        },
+        {
+          "base": "H5 [31,26,3]",
+          "d_min": 4,
+          "hyperbolic": "eij",
+          "n": 52,
+          "pick": "random5",
+          "self_orthogonal": true,
+          "t": 21
+        }
+      ]
     }
   ]
 }
