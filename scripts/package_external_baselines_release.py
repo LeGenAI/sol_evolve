@@ -67,8 +67,11 @@ BUNDLE = [
     ("power_analysis_mcnemar/summary.json", "results/power_analysis_mcnemar.json"),
     # Binary SO embeddings of the SO table (reconstruction + independent verification)
     ("so_f2_reconstruction/summary.json", "results/so_f2/summary.json"),
-    ("so_52_26_d8_search/summary.json", "results/so_f2/so_52_26_d8_search_summary.json"),
-    ("so_52_26_d8_search/so_52_26_d8_matrix.json", "results/so_f2/so_52_26_d8_matrix.json"),
+    # Canonical [52,26] d=8 witness: SAT + verifier-feedback (CEGAR) construction
+    ("so_52_26_d8_sat_cegar/summary.json", "results/so_f2/so_52_26_d8_sat_cegar_summary.json"),
+    ("so_52_26_d8_sat_cegar/so_52_26_d8_matrix.json", "results/so_f2/so_52_26_d8_matrix.json"),
+    # Auxiliary independent check: Gram-preserving annealing also reaches d=8
+    ("so_52_26_d8_search/summary.json", "results/so_f2/so_52_26_d8_annealing_summary.json"),
     # Lucas partition feasibility incl. the UNSAT rows
     ("lucas_partition_feasibility/summary.json", "results/lucas_partition_feasibility.json"),
 ]

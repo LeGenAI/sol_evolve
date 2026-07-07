@@ -171,23 +171,29 @@ Reconstructs the two binary rows of the manuscript's SO table from scratch:
   same fixed base is UNSAT.
 - `52_26`: appends t=21 = rank(GG^T) columns to the [31,26,3] Hamming code under
   the self-orthogonality constraint; enumerated solutions are verified exactly
-  via meet-in-the-middle enumeration of all 2^26 codewords. Distance-constrained
-  SAT is out of reach at k=26, so the manuscript's d_min = 8 witness is
-  re-derived by the companion search:
+  via meet-in-the-middle enumeration of all 2^26 codewords. The manuscript's
+  d_min = 8 witness is re-derived by the architecture-faithful SAT construction:
 
 ```bash
-.venv/bin/python scripts/search_52_26_d8_so_embedding.py \
-  --out-dir artifacts/external_baselines/so_52_26_d8_search
+.venv/bin/python scripts/sat_52_26_d8_so_embedding.py \
+  --mode cegar \
+  --out-dir artifacts/external_baselines/so_52_26_d8_sat_cegar
 ```
 
-  The search moves through the exact solution space of S S^T = G G^T with
-  Gram-preserving orthogonal-transvection steps (S -> S + (S u) u^T for
-  even-weight u) and anneals the count of codewords below weight 8; only the
-  111,631 messages whose base codeword weight is <= 7 can violate d >= 8, so
-  each candidate evaluates with one mod-2 matrix product. Expected: a witness
-  with d_min = 8, A_8 = 29, self-complementary weight distribution, verified
-  exhaustively and frozen in the release bundle. The rank-one sweep in the same
-  reconstruction summary shows Algorithm 1 alone attains t = 21 but d_min = 4.
+  The extension S is the SAT unknown, self-orthogonality is the Gram condition
+  S S^T = G G^T, and distance is enforced per low-weight base codeword (because
+  SO codes have only even weights, weight >= 7 suffices for d >= 8, so only the
+  29,016 base codewords of weight <= 6 can require constraints). The cegar mode
+  runs the SolEvolve verifier loop: CaDiCaL proposes S, the deterministic
+  verifier scans all 111,631 low-weight codewords, and violated codewords are
+  fed back as constraints for the next query. Expected: convergence in ~5 rounds
+  with only ~1,250 of the 29,016 constraints ever instantiated, yielding a
+  witness with d_min = 8 (A_8 = 26), verified exhaustively and frozen in the
+  release bundle. `--mode eager` encodes all constraints up front for an
+  eager-vs-lazy comparison. Auxiliary checks in the same bundle: the rank-one
+  pivot sweep (Algorithm 1 alone attains t = 21 but d_min = 4) and a
+  Gram-preserving annealing search (`search_52_26_d8_so_embedding.py`) that
+  independently reaches d_min = 8.
 
 ### 10. Lucas partition feasibility, including the UNSAT rows (deterministic)
 

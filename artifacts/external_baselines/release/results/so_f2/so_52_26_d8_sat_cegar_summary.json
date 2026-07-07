@@ -1,0 +1,96 @@
+{
+  "args": {
+    "cadical_path": "/Users/imds/Desktop/icml_2026_solevolve/sol_evolve/cadical/build/cadical",
+    "initial_max_base_weight": 4,
+    "keep_cnf": false,
+    "max_rounds": 12,
+    "mode": "cegar",
+    "out_dir": "sol_evolve/artifacts/external_baselines/so_52_26_d8_sat_cegar",
+    "timeout_sec": 3600
+  },
+  "created_at": "2026-07-07T01:25:27.622207+00:00",
+  "description": "SAT-driven [52,26] SO embedding with d>=8: Gram condition plus per-codeword distance constraints; cegar mode feeds verifier-found violations back as constraints.",
+  "low_weight_base_counts": {
+    "3": 155,
+    "4": 1085,
+    "5": 5208,
+    "6": 22568,
+    "7": 82615
+  },
+  "matrix_path": "sol_evolve/artifacts/external_baselines/so_52_26_d8_sat_cegar/so_52_26_d8_matrix.json",
+  "rounds": [
+    {
+      "active_constraints": 1240,
+      "clauses": 717266,
+      "round": 0,
+      "solve_ms": 17086.026,
+      "status": "SAT",
+      "variables": 72981,
+      "verifier_violations": 3
+    },
+    {
+      "active_constraints": 1243,
+      "clauses": 718337,
+      "round": 1,
+      "solve_ms": 18091.904,
+      "status": "SAT",
+      "variables": 73233,
+      "verifier_violations": 2
+    },
+    {
+      "active_constraints": 1245,
+      "clauses": 719051,
+      "round": 2,
+      "solve_ms": 8521.806,
+      "status": "SAT",
+      "variables": 73401,
+      "verifier_violations": 4
+    },
+    {
+      "active_constraints": 1249,
+      "clauses": 720479,
+      "round": 3,
+      "solve_ms": 7965.077,
+      "status": "SAT",
+      "variables": 73737,
+      "verifier_violations": 1
+    },
+    {
+      "active_constraints": 1250,
+      "clauses": 720836,
+      "round": 4,
+      "solve_ms": 41385.817,
+      "status": "SAT",
+      "variables": 73821,
+      "verifier_violations": 0
+    }
+  ],
+  "verification": {
+    "d_min": 8,
+    "self_orthogonal": true,
+    "weight_distribution": {
+      "0": 1,
+      "8": 26,
+      "10": 478,
+      "12": 6070,
+      "14": 52624,
+      "16": 309158,
+      "18": 1272136,
+      "20": 3754417,
+      "22": 8061680,
+      "24": 12707544,
+      "26": 14780596,
+      "28": 12707544,
+      "30": 8061680,
+      "32": 3754417,
+      "34": 1272136,
+      "36": 309158,
+      "38": 52624,
+      "40": 6070,
+      "42": 478,
+      "44": 26,
+      "52": 1
+    }
+  },
+  "witness_found": true
+}

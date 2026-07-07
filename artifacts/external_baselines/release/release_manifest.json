@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-07-07T01:18:23.160610+00:00",
+  "created_at": "2026-07-07T01:27:15.616469+00:00",
   "description": "Reviewer-facing bundle for the common-interface FunSearch/EoH repair-policy benchmark.",
   "files": [
     {
@@ -219,16 +219,22 @@
       "source": "artifacts/external_baselines/so_f2_reconstruction/summary.json"
     },
     {
-      "bytes": 1261,
-      "path": "results/so_f2/so_52_26_d8_search_summary.json",
-      "sha256": "5aa2cc9a9afce8e9473bb77adaaf0586b42fa94d72a1153d39e36a1c33ccac0c",
-      "source": "artifacts/external_baselines/so_52_26_d8_search/summary.json"
+      "bytes": 2310,
+      "path": "results/so_f2/so_52_26_d8_sat_cegar_summary.json",
+      "sha256": "de64855f55eb5dfbf96234c4ef56c711da41a3d0127a34f7b70fcadc26f754f2",
+      "source": "artifacts/external_baselines/so_52_26_d8_sat_cegar/summary.json"
     },
     {
       "bytes": 4109,
       "path": "results/so_f2/so_52_26_d8_matrix.json",
-      "sha256": "2c394e8d9a77f947c0d98597e55ab7677adfb10d42fc4275c98265eb199ef85e",
-      "source": "artifacts/external_baselines/so_52_26_d8_search/so_52_26_d8_matrix.json"
+      "sha256": "2f1837ca427e1984cddd2917228f947caa3c453eb0a5f479082380337499def9",
+      "source": "artifacts/external_baselines/so_52_26_d8_sat_cegar/so_52_26_d8_matrix.json"
+    },
+    {
+      "bytes": 1261,
+      "path": "results/so_f2/so_52_26_d8_annealing_summary.json",
+      "sha256": "5aa2cc9a9afce8e9473bb77adaaf0586b42fa94d72a1153d39e36a1c33ccac0c",
+      "source": "artifacts/external_baselines/so_52_26_d8_search/summary.json"
     },
     {
       "bytes": 2518,
