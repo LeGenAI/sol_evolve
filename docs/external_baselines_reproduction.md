@@ -189,8 +189,9 @@ Reconstructs the two binary rows of the manuscript's SO table from scratch:
   fed back as constraints for the next query. Expected: convergence in ~5 rounds
   with only ~1,250 of the 29,016 constraints ever instantiated, yielding a
   witness with d_min = 8 (A_8 = 26), verified exhaustively and frozen in the
-  release bundle. `--mode eager` encodes all constraints up front for an
-  eager-vs-lazy comparison. Auxiliary checks in the same bundle: the rank-one
+  release bundle. `--mode eager` encodes all constraints up front for the
+  eager-vs-lazy comparison; expected outcome: a 9.9M-clause instance that times
+  out at one hour, versus under two minutes total for the cegar loop. Auxiliary checks in the same bundle: the rank-one
   pivot sweep (Algorithm 1 alone attains t = 21 but d_min = 4) and a
   Gram-preserving annealing search (`search_52_26_d8_so_embedding.py`) that
   independently reaches d_min = 8.

@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-07-07T01:27:15.616469+00:00",
+  "created_at": "2026-07-07T02:27:31.696268+00:00",
   "description": "Reviewer-facing bundle for the common-interface FunSearch/EoH repair-policy benchmark.",
   "files": [
     {
@@ -229,6 +229,12 @@
       "path": "results/so_f2/so_52_26_d8_matrix.json",
       "sha256": "2f1837ca427e1984cddd2917228f947caa3c453eb0a5f479082380337499def9",
       "source": "artifacts/external_baselines/so_52_26_d8_sat_cegar/so_52_26_d8_matrix.json"
+    },
+    {
+      "bytes": 885,
+      "path": "results/so_f2/so_52_26_d8_sat_eager_summary.json",
+      "sha256": "7a5ca715c09a700e5a1e2f5253c4dd072dfd7ba4090418dde0faa6832f9d1a9c",
+      "source": "artifacts/external_baselines/so_52_26_d8_sat_eager/summary.json"
     },
     {
       "bytes": 1261,

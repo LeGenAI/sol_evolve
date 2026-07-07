@@ -70,6 +70,8 @@ BUNDLE = [
     # Canonical [52,26] d=8 witness: SAT + verifier-feedback (CEGAR) construction
     ("so_52_26_d8_sat_cegar/summary.json", "results/so_f2/so_52_26_d8_sat_cegar_summary.json"),
     ("so_52_26_d8_sat_cegar/so_52_26_d8_matrix.json", "results/so_f2/so_52_26_d8_matrix.json"),
+    # Eager-vs-lazy comparison arm: all constraints up front times out at 1 h
+    ("so_52_26_d8_sat_eager/summary.json", "results/so_f2/so_52_26_d8_sat_eager_summary.json"),
     # Auxiliary independent check: Gram-preserving annealing also reaches d=8
     ("so_52_26_d8_search/summary.json", "results/so_f2/so_52_26_d8_annealing_summary.json"),
     # Lucas partition feasibility incl. the UNSAT rows
