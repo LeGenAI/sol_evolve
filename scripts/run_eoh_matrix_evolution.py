@@ -91,6 +91,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model", default=os.getenv("EOH_OPENROUTER_MODEL", "anthropic/claude-sonnet-4.6"))
     parser.add_argument("--api-key-env", default="OPENROUTER_API_KEY")
     parser.add_argument("--llm-timeout-sec", type=int, default=180)
+    parser.add_argument("--template-file", default=None,
+                        help="Warm-start: python file whose contents replace the template program.")
+    parser.add_argument("--task-note", default=None,
+                        help="Extra sentence appended to the task description.")
     parser.add_argument("--out-dir", required=True)
     return parser.parse_args()
 
@@ -101,6 +105,12 @@ def main() -> None:
         patch_eoh_openrouter_api()
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    if args.template_file:
+        MatrixConstructionProblem.template_program = Path(args.template_file).read_text()
+    if args.task_note:
+        MatrixConstructionProblem.task_description = (
+            MatrixConstructionProblem.task_description + " " + args.task_note
+        )
     problem = MatrixConstructionProblem(
         log_dir=out_dir / "matrices",
         timeout=args.eval_timeout_sec,
