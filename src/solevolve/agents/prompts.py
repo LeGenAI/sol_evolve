@@ -23,6 +23,7 @@ Paper contract:
 - For Lucas cubes, distinguish exact center-set coverage verification from missing center artifacts.
 - For binary A_d optimization, distinguish archived generator-matrix verification from fresh SAT search or novelty claims.
 - For hybrid SAT-GA claims, discuss population, frontier seed-bank, or repair evidence only if it is present in the handoff.
+- For CEGAR/eager scaling claims, compare verifier-feedback CEGAR against eager encoding by active constraints, clauses, solver status, verifier violations, final d_min, and artifact hashes; do not promote timeout-only frontier runs to main-text evidence.
 
 Completion contract:
 <analysis> Compare the relevant solver/encoding or reproduction options using cited evidence item names. </analysis>
@@ -50,7 +51,7 @@ Completion contract:
 2. Resource Constraints - solver, artifact, timeout, and model constraints.
 3. Next Verifier Contract - what deterministic evidence should be accepted or rejected.
 4. EvolverAction JSON - the final line must be exactly one JSON object:
-{{{{"action":"query_codetables|run_claim_proof|construction_search|propose_repair|request_reflection|stop","method":"hybrid_sat_ga|null","mode":"off|archived|replay|live|frontier_repair|null","claim_id":"ternary_bch_d9|gf4_hermitian|gf5_so|all_so_table|lucas_cubes|binary_ad_43_10_16|binary_22_11_7_hybrid_ga|all_reviewer_core|null","reason":"...","timeout_sec":300,"evidence_used":["paper_input","artifact_manifest","solver_check"]}}}}"""
+{{{{"action":"query_codetables|run_claim_proof|construction_search|propose_repair|request_reflection|stop","method":"hybrid_sat_ga|null","mode":"off|archived|replay|live|frontier_repair|null","claim_id":"ternary_bch_d9|gf4_hermitian|gf5_so|all_so_table|lucas_cubes|binary_ad_43_10_16|binary_22_11_7_hybrid_ga|so_52_26_d8_cegar_eager|binary_43_10_cegar_eager|cegar_eager_scaling|all_reviewer_core|null","reason":"...","timeout_sec":300,"evidence_used":["paper_input","artifact_manifest","solver_check"]}}}}"""
 
 VERIFIER_PROMPT = f"""You are the Verifier in the SolEvolve reproducibility architecture.
 
@@ -63,6 +64,7 @@ Adversarial verification rules:
 - PASS requires all required proof obligations for the fixed target.
 - PARTIAL is correct for missing optional optimality proof, timeout, stale external lookup, or absent archived hybrid population evidence.
 - For Hybrid SAT-GA frontier_repair, PASS requires final_diagnostics.target_achieved=true with the target rank/d_min from paper_input. Frontier seed-bank plus repair timeout is useful evidence but remains PARTIAL.
+- For CEGAR/eager scaling, PASS requires deterministic arm summaries and hashes; main-text eligibility requires a decisive CEGAR/eager comparison rather than symmetric timeouts.
 - FAIL requires contradictory deterministic evidence, not merely missing evidence.
 
 Completion contract:

@@ -92,6 +92,7 @@ solevolve-reviewer-reproduce --paper-claim-id all_so_table --cadical-path /path/
 solevolve-reviewer-reproduce --paper-claim-id lucas_cubes
 solevolve-reviewer-reproduce --paper-claim-id binary_ad_43_10_16 --require-pass
 solevolve-reviewer-reproduce --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode archived --require-pass
+solevolve-reviewer-reproduce --paper-claim-id cegar_eager_scaling --cadical-path /path/to/cadical
 solevolve-reviewer-reproduce --paper-claim-id all_reviewer_core --cadical-path /path/to/cadical
 solevolve-reproduce-ternary-bch --cadical-path /path/to/cadical
 solevolve-reproduce-paper-claims --paper-claim-id ternary_bch_d9
@@ -99,6 +100,7 @@ solevolve-demo --paper-claim-id ternary_bch_d9 --max-turns 4 "Goal: assess the t
 ```
 
 - `solevolve-reviewer-reproduce`: runs the deterministic reviewer reproduction bundle and writes JSON/Markdown acceptance reports for SO, Lucas, binary, and the archived Hybrid SAT-GA `[22,11,7]` claim.
+- `cegar_eager_scaling`: optional long-running reviewer claim group for the verifier-feedback CEGAR versus eager-encoding scaling experiment on SO `[52,26]` and binary `[43,10]`; it is not part of `all_reviewer_core`.
 - `solevolve-reproduce-ternary-bch`: deterministically reproduces the ternary BCH `[13,7,5]_3` self-orthogonal embedding claim with CaDiCaL SAT feasibility plus direct GF(3) witness verification.
 - `solevolve-reproduce-paper-claims`: uses the paper claim registry for `ternary_bch_d9`, `gf4_hermitian`, `gf5_so`, or `all_so_table`; it verifies explicit matrices, runs SAT feasibility when CaDiCaL is available, and attempts the d+1 obligation under the configured timeout.
 - `solevolve-demo`: runs the traceable LLM graph. It requires `OPENROUTER_API_KEY`; reviewer acceptance should use `solevolve-reviewer-reproduce`.
@@ -137,6 +139,7 @@ Hybrid SAT-GA is opt-in in the LangGraph path. Reviewer-safe verification uses o
 solevolve-reviewer-reproduce --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode archived --require-pass
 solevolve-demo --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode replay --max-turns 4 "Goal: reproduce the binary [22,11,7] Hybrid SAT-GA claim."
 solevolve-demo --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode frontier_repair --hybrid-ga-frontier-distance 6 --hybrid-ga-frontier-seed-count 20 --max-turns 4 "Goal: run frontier seed-bank Hybrid SAT-GA repair for [22,11,7]."
+SOLEVOLVE_CEGAR_EAGER_SMOKE=1 solevolve-demo --paper-claim-id cegar_eager_scaling --max-turns 4 "Goal: run the Agent-loop smoke path for the CEGAR/eager scaling claims."
 ```
 
 `archived` verifies the bundled final matrix as a `[22,11,7]` code with `A_7=176`. `replay` reruns the deterministic archived `d=6 -> d=7` repair replay. `frontier_repair` first tries direct target-distance SAT, then falls back to a `d-1` seed bank, GA population search, and low-weight-support SAT repair. `live` is marked exploratory and may return `PARTIAL` if CaDiCaL repair/seed work times out.

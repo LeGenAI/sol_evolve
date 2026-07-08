@@ -412,6 +412,8 @@ def _paper_claim_payload_evidence(payload: dict[str, Any], *, report_path: Path 
     repair_events = payload.get("repair_events") if isinstance(payload.get("repair_events"), list) else []
     seed_bank = payload.get("seed_bank") if isinstance(payload.get("seed_bank"), dict) else {}
     frontier_solver_runs = payload.get("frontier_solver_runs") if isinstance(payload.get("frontier_solver_runs"), list) else []
+    cegar_eager = payload.get("cegar_eager_summary") if isinstance(payload.get("cegar_eager_summary"), dict) else {}
+    cegar_arms = payload.get("arms") if isinstance(payload.get("arms"), list) else []
     details = {
         "result_id": claim_id,
         "claim_family": family,
@@ -458,6 +460,17 @@ def _paper_claim_payload_evidence(payload: dict[str, Any], *, report_path: Path 
         "hybrid_ga_diversity": latest_generation.get("diversity"),
         "hybrid_ga_elapsed_ms": final_diagnostics.get("total_elapsed_ms") or final_diagnostics.get("elapsed_ms"),
         "hybrid_ga_report": payload,
+        "cegar_eager_report": payload if family == "cegar_eager_scaling" else None,
+        "cegar_eager_main_text_candidate": cegar_eager.get("main_text_candidate"),
+        "cegar_eager_best_d_min": cegar_eager.get("best_d_min") or diagnostics.get("d_min"),
+        "cegar_eager_weight_distribution": diagnostics.get("weight_distribution"),
+        "cegar_eager_arm_count": len(cegar_arms),
+        "cegar_eager_arm_statuses": {
+            str(arm.get("arm_id")): arm.get("status")
+            for arm in cegar_arms
+            if isinstance(arm, dict) and arm.get("arm_id")
+        },
+        "cegar_eager_summary": cegar_eager,
         "cnf_path": cnf.get("cnf_path"),
         "cnf_resolved_path": cnf.get("cnf_resolved_path"),
         "cnf_sha256": _safe_file_hash(cnf.get("cnf_path")),
@@ -493,7 +506,17 @@ def _paper_claim_payload_evidence(payload: dict[str, Any], *, report_path: Path 
         "artifact_sha256": binary_artifact.get("sha256") or first_source_artifact.get("sha256"),
         "elapsed_ms": payload.get("elapsed_ms"),
     }
-    if family == "hybrid_sat_ga":
+    if family == "cegar_eager_scaling":
+        summary_bits = [
+            f"verdict={verdict}",
+            "family=cegar_eager_scaling",
+            f"target_d={payload.get('target_minimum_distance')}",
+            f"best_d_min={details.get('cegar_eager_best_d_min')}",
+            f"main_text_candidate={cegar_eager.get('main_text_candidate')}",
+            f"arms={details.get('cegar_eager_arm_statuses')}" if cegar_arms else "",
+            f"missing={','.join(missing_obligations)}" if missing_obligations else "",
+        ]
+    elif family == "hybrid_sat_ga":
         summary_bits = [
             f"verdict={verdict}",
             "family=hybrid_sat_ga",
@@ -1140,6 +1163,7 @@ def _verifier_diagnostics_from_evidence(evidence: list[EvidenceItem]) -> list[Ve
             details.get("matrix_minimum_distance")
             or details.get("binary_minimum_distance")
             or details.get("hybrid_ga_best_d_min")
+            or details.get("cegar_eager_best_d_min")
             or details.get("lucas_minimum_pairwise_distance")
             or details.get("minimum_distance")
         )
@@ -1168,6 +1192,7 @@ def _verifier_diagnostics_from_evidence(evidence: list[EvidenceItem]) -> list[Ve
                 weight_distribution=details.get("matrix_weight_distribution")
                 or details.get("binary_weight_distribution")
                 or details.get("hybrid_ga_weight_distribution")
+                or details.get("cegar_eager_weight_distribution")
                 or details.get("lucas_ball_size_distribution")
                 or details.get("weight_distribution"),
                 low_weight_count=low_weight_count,

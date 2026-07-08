@@ -44,6 +44,7 @@ The reviewer command checks the public artifact manifest, hashes bundled files, 
 | `lucas_l15_s11` | Verify the bundled 2047-center artifact from the archived SAT experiment: pairwise distance >= 3, exact closed-neighborhood cover of 32647 vertices, and ball-size distribution `{14:16,15:73,16:1958}` |
 | `binary_ad_43_10_16` | Verify three archived generator matrices as binary `[43,10,16]` codes and recompute `A_16=91,86,80` by enumerating all `2^10` codewords |
 | `binary_22_11_7_hybrid_ga` | Verify the archived Hybrid SAT-GA public witness as a binary `[22,11,7]` code and recompute `A_7=176` and the full weight distribution |
+| `cegar_eager_scaling` | Optional long-running scaling suite: SO `[52,26], d>=8` CEGAR thresholds `{3,4,5}` versus eager encoding, plus binary `[43,10]` CEGAR/eager feasibility with a capped `d=17` frontier stress test |
 
 `PASS` means the selected claims passed required proof obligations and required codetables lookup succeeded live or from cache. `PARTIAL` means some deterministic checks pass but a selected suite contains an unavailable optional proof, timeout, or missing artifact. `INSUFFICIENT_ARTIFACT` on a claim means the release lacks the raw center/matrix artifact needed for a full proof. `FAIL` means a required manifest or mathematical proof obligation contradicted the manuscript claim.
 
@@ -55,9 +56,13 @@ solevolve-reviewer-reproduce --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-
 solevolve-demo --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode frontier_repair --hybrid-ga-frontier-distance 6 --hybrid-ga-frontier-seed-count 20 --max-turns 4
 solevolve-reviewer-reproduce --paper-claim-id lucas_cubes
 solevolve-reviewer-reproduce --paper-claim-id all_so_table --cadical-path "$CADICAL_PATH" --require-pass
+solevolve-reviewer-reproduce --paper-claim-id cegar_eager_scaling --cadical-path "$CADICAL_PATH" --timeout 300
+SOLEVOLVE_CEGAR_EAGER_SMOKE=1 solevolve-demo --paper-claim-id cegar_eager_scaling --cadical-path "$CADICAL_PATH" --claim-timeout-sec 1 --max-turns 4
 ```
 
 `all_reviewer_core --require-pass` is intentionally strict: it fails if any required SO, Lucas, or binary claim obligation fails. The bundled Lucas `n=15` center sets are now included in `artifacts/reviewer_core_claims.json`; no external Lucas center archive is needed for the reviewer command.
+
+`cegar_eager_scaling` is intentionally outside `all_reviewer_core` because it can run much longer than the baseline reviewer checks. The smoke environment variable exercises the SolEvolve Agent-loop and artifact path without running the heavy SO eager arm; smoke outputs must not be used as manuscript evidence.
 
 The Lucas `Lambda_7(1^4)` verifier recomputes ball sizes inside the induced Lucas cube. For the manuscript center list, the reproducible distribution is `{6:7,7:7,8:1}`; any paper text reporting a different distribution should be corrected to this verifier output.
 

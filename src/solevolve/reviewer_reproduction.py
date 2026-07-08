@@ -81,6 +81,8 @@ def _claim_rows(claim_summary: dict[str, Any]) -> list[dict[str, Any]]:
         hybrid_final = report.get("final_diagnostics") or {}
         hybrid_generations = report.get("generation_summaries") or []
         hybrid_last = hybrid_generations[-1] if hybrid_generations else {}
+        cegar_eager = report.get("cegar_eager_summary") or {}
+        cegar_arms = report.get("arms") or []
         artifact_paths = report.get("artifact_paths") or []
         parameters = report.get("extended_parameters") or report.get("parameters")
         if report.get("claim_id") == HYBRID_CLAIM_ID:
@@ -102,6 +104,13 @@ def _claim_rows(claim_summary: dict[str, Any]) -> list[dict[str, Any]]:
                 "hybrid_ga_best_d_min": hybrid_final.get("minimum_distance", hybrid_last.get("best_d_min")),
                 "hybrid_ga_best_A_d": hybrid_final.get("A_d", hybrid_last.get("best_A_d")),
                 "hybrid_ga_diversity": hybrid_last.get("diversity"),
+                "cegar_eager_best_d_min": cegar_eager.get("best_d_min"),
+                "cegar_eager_main_text_candidate": cegar_eager.get("main_text_candidate"),
+                "cegar_eager_arm_statuses": {
+                    str(arm.get("arm_id")): arm.get("status")
+                    for arm in cegar_arms
+                    if isinstance(arm, dict) and arm.get("arm_id")
+                },
                 "self_orthogonal": matrix.get("self_orthogonal"),
                 "weight_distribution_ok": matrix.get("matches_expected_weight_distribution"),
                 "coverage_ok": (diagnostics.get("checks") or {}).get("exact_cover"),
@@ -260,6 +269,12 @@ def _write_markdown_report(path: Path, payload: dict[str, Any]) -> None:
             diagnostics.append(f"hybrid_generations={row.get('hybrid_ga_generation_count')}")
         if row.get("hybrid_ga_repair_count"):
             diagnostics.append(f"hybrid_repairs={row.get('hybrid_ga_repair_count')}")
+        if row.get("cegar_eager_best_d_min") is not None:
+            diagnostics.append(f"cegar/eager_best_d={row.get('cegar_eager_best_d_min')}")
+        if row.get("cegar_eager_main_text_candidate") is not None:
+            diagnostics.append(f"main_text_candidate={row.get('cegar_eager_main_text_candidate')}")
+        if row.get("cegar_eager_arm_statuses"):
+            diagnostics.append(f"arms={row.get('cegar_eager_arm_statuses')}")
         if row.get("A_d_progression"):
             diagnostics.append(f"A_d={row.get('A_d_progression')}")
         if row.get("coverage_ok") is not None:
@@ -441,7 +456,7 @@ def run_reviewer_reproduction(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run reviewer-facing deterministic SolEvolve reproduction checks.")
-    parser.add_argument("--paper-claim-id", default="all_reviewer_core", help="Claim id to reproduce: all_so_table, lucas_cubes, binary_ad_43_10_16, binary_22_11_7_hybrid_ga, or all_reviewer_core.")
+    parser.add_argument("--paper-claim-id", default="all_reviewer_core", help="Claim id to reproduce: all_so_table, lucas_cubes, binary_ad_43_10_16, binary_22_11_7_hybrid_ga, cegar_eager_scaling, or all_reviewer_core.")
     parser.add_argument("--output-dir", default="artifacts/reviewer_reproduction", help="Directory for reviewer JSON/Markdown reports and generated claim artifacts.")
     parser.add_argument("--manifest", default=None, help="Path to artifacts/manifest.json. Defaults to the packaged manifest.")
     parser.add_argument("--cadical-path", default=None, help="Optional CaDiCaL binary or directory. Directories resolve via build/cadical then cadical.")

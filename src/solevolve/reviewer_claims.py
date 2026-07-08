@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from .binary_repro import reproduce_binary_ad_43_10_16
+from .cegar_eager_repro import CEGAR_EAGER_CLAIM_IDS, reproduce_cegar_eager_claim
 from .claim_registry import expand_claim_ids as expand_so_claim_ids
 from .claim_registry import get_claim
 from .contracts import HybridGAPolicy, LucasTarget, PaperTarget
@@ -26,6 +27,7 @@ REVIEWER_CLAIM_GROUPS: dict[str, list[str]] = {
     HYBRID_CLAIM_ID: [HYBRID_CLAIM_ID],
     "hybrid_sat_ga": [HYBRID_CLAIM_ID],
     "all_hybrid_ga": HYBRID_GA_CLAIM_IDS,
+    "cegar_eager_scaling": CEGAR_EAGER_CLAIM_IDS,
     "all_reviewer_core": SO_CLAIM_IDS + LUCAS_CLAIM_IDS + BINARY_CLAIM_IDS,
 }
 
@@ -42,6 +44,8 @@ def expand_reviewer_claim_ids(claim_id: str | None) -> list[str]:
         return [normalized]
     if normalized in HYBRID_GA_CLAIM_IDS:
         return [normalized]
+    if normalized in CEGAR_EAGER_CLAIM_IDS:
+        return [normalized]
     return expand_so_claim_ids(normalized)
 
 
@@ -55,6 +59,8 @@ def claim_family(claim_id: str) -> str:
         return "binary_codes"
     if normalized in HYBRID_GA_CLAIM_IDS:
         return "hybrid_sat_ga"
+    if normalized in CEGAR_EAGER_CLAIM_IDS:
+        return "cegar_eager_scaling"
     raise KeyError(f"unknown reviewer claim id: {claim_id}")
 
 
@@ -126,6 +132,46 @@ def paper_target_for_claim(claim_id: str) -> PaperTarget:
                 "minimum_distance_enumeration",
                 "A7_weight_distribution",
                 "optional_replay_or_live_hybrid_ga",
+            ],
+            solver_preference="cadical",
+        )
+    if family == "cegar_eager_scaling":
+        if claim_id == "so_52_26_d8_cegar_eager":
+            return PaperTarget(
+                claim_id=claim_id,
+                q=2,
+                n=52,
+                k=26,
+                d=8,
+                field="GF(2)",
+                inner_product="dot",
+                objective="Compare verifier-feedback CEGAR against eager distance encoding for the binary [52,26] self-orthogonal embedding.",
+                required_checks=[
+                    "agent_loop_run_claim_proof",
+                    "cegar_threshold_sweep",
+                    "eager_encoding_baseline",
+                    "deterministic_minimum_distance_verification",
+                    "artifact_hashes",
+                ],
+                solver_preference="cadical",
+                source_n=31,
+                t=21,
+            )
+        return PaperTarget(
+            claim_id=claim_id,
+            q=2,
+            n=43,
+            k=10,
+            d=16,
+            field="GF(2)",
+            inner_product="dot",
+            objective="Compare verifier-feedback CEGAR against eager distance encoding for binary [43,10] feasibility, with a capped d=17 frontier stress test.",
+            required_checks=[
+                "agent_loop_run_claim_proof",
+                "d16_cegar_eager_comparison",
+                "optional_d17_frontier_stress_test",
+                "deterministic_minimum_distance_verification",
+                "artifact_hashes",
             ],
             solver_preference="cadical",
         )
@@ -221,6 +267,15 @@ def reproduce_reviewer_claims(
                     artifact_dir=artifact_dir,
                     cadical_path=cadical_path,
                     claim_id=expanded_id,
+                )
+            )
+        elif family == "cegar_eager_scaling":
+            reports.append(
+                reproduce_cegar_eager_claim(
+                    claim_id=expanded_id,
+                    artifact_dir=artifact_dir,
+                    cadical_path=cadical_path,
+                    timeout=timeout,
                 )
             )
 

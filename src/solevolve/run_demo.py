@@ -193,7 +193,7 @@ def main() -> None:
         default=None,
         help=(
             "Paper claim to reproduce, e.g. ternary_bch_d9, gf4_hermitian, gf5_so, all_so_table, "
-            "or binary_22_11_7_hybrid_ga."
+            "binary_22_11_7_hybrid_ga, or cegar_eager_scaling."
         ),
     )
     parser.add_argument(
