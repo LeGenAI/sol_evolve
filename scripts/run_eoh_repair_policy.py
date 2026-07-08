@@ -66,7 +66,9 @@ def patch_eoh_openrouter_api() -> None:
                 if not choices:
                     raise ValueError(parsed.get("error", {}).get("message", str(parsed))[:300])
                 return choices[0]["message"]["content"]
-            except Exception:
+            except Exception as exc:
+                print(f"[openrouter] attempt {attempt + 1}/{max_retries} failed: {exc}",
+                      file=sys.stderr, flush=True)
                 if attempt < max_retries - 1:
                     time.sleep(2**attempt)
             finally:
