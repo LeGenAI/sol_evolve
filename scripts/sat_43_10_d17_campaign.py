@@ -114,9 +114,18 @@ def add_column_lex_chain(builder: CNFBuilder) -> None:
             prev_eq = eq
 
 
-def build_cnf(active_messages: list[int], target_d: int, *, use_lex: bool) -> CNFBuilder:
+def add_self_complementary(builder: CNFBuilder) -> None:
+    """All-one message maps to the all-one codeword: every P column has odd weight."""
+    for j in range(M):
+        builder.assert_xor([p_var(i, j) for i in range(K)], 1)
+
+
+def build_cnf(active_messages: list[int], target_d: int, *, use_lex: bool,
+              self_complementary: bool = False) -> CNFBuilder:
     builder = CNFBuilder()
     builder.counter = K * M
+    if self_complementary:
+        add_self_complementary(builder)
     if use_lex:
         add_column_lex_chain(builder)
     for message in active_messages:
@@ -142,6 +151,8 @@ def main() -> None:
     parser.add_argument("--max-rounds", type=int, default=60)
     parser.add_argument("--timeout-sec", type=int, default=7200)
     parser.add_argument("--no-lex", action="store_true", help="Disable column-lex symmetry breaking.")
+    parser.add_argument("--self-complementary", action="store_true",
+                        help="Restrict to self-complementary codes (all-one vector in the code).")
     parser.add_argument("--cadical-path", default=str(REPO_ROOT / "cadical" / "build" / "cadical"))
     parser.add_argument("--out-dir", required=True)
     args = parser.parse_args()
@@ -161,7 +172,8 @@ def main() -> None:
     witness = None
     status_final = None
     for round_idx in range(args.max_rounds):
-        builder = build_cnf(sorted(active), args.target_d, use_lex=not args.no_lex)
+        builder = build_cnf(sorted(active), args.target_d, use_lex=not args.no_lex,
+                            self_complementary=args.self_complementary)
         stats = {
             "round": round_idx,
             "active_messages": len(active),
