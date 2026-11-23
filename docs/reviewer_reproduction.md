@@ -9,10 +9,12 @@ export CADICAL_PATH=/path/to/cadical
 solevolve-reviewer-reproduce \
   --paper-claim-id all_reviewer_core \
   --cadical-path "$CADICAL_PATH" \
-  --timeout 300
+  --timeout 300 --require-pass
 ```
 
 `--cadical-path` may point either to a binary or to a CaDiCaL source/build directory. The resolver checks `build/cadical` and `cadical` inside that directory. If omitted, the command also checks the repo-local `cadical/build/cadical`, then common environment/default locations.
+
+The command checks seven core claims. Run the eighth row below, the archived Hybrid SAT-GA witness, with its separate focused command.
 
 The command writes:
 
@@ -24,6 +26,7 @@ The command writes:
 The public input bundle is intentionally minimal:
 
 - `artifacts/manifest.json`
+- `artifacts/gf5_fixed_base_d9.json`
 - `artifacts/reviewer_core_claims.json`
 - `artifacts/reviewer_experiment_summaries.json`
 - `artifacts/reviewer_experiment_summaries.csv`
@@ -45,7 +48,11 @@ The reviewer command checks the public artifact manifest, hashes bundled files, 
 | `binary_ad_43_10_16` | Verify three archived generator matrices as binary `[43,10,16]` codes and recompute `A_16=91,86,80` by enumerating all `2^10` codewords |
 | `binary_22_11_7_hybrid_ga` | Verify the archived Hybrid SAT-GA public witness as a binary `[22,11,7]` code and recompute `A_7=176` and the full weight distribution |
 
-`PASS` means the selected claims passed required proof obligations and required codetables lookup succeeded live or from cache. `PARTIAL` means some deterministic checks pass but a selected suite contains an unavailable optional proof, timeout, or missing artifact. `INSUFFICIENT_ARTIFACT` on a claim means the release lacks the raw center/matrix artifact needed for a full proof. `FAIL` means a required manifest or mathematical proof obligation contradicted the manuscript claim.
+`PASS` means the selected claims passed required proof obligations and required codetables lookup succeeded live or from cache. `PARTIAL` means some deterministic checks pass but a selected suite contains an unresolved required check, unavailable reference, or missing artifact. `INSUFFICIENT_ARTIFACT` on a claim means the release lacks the raw center/matrix artifact needed for a full proof. `FAIL` means a required manifest or mathematical proof obligation contradicted the manuscript claim.
+
+For GF(5), the manuscript construction and the SAT search have separate entries in the JSON report. The manuscript matrix has parameters `[18,6,8]`. A run of the optional higher-distance probe produced a self-orthogonal [distance-9 witness over GF(5)](../artifacts/gf5_fixed_base_d9.json) for the same base. Run `python scripts/check_reviewer_acceptance.py` to verify the archived matrix without CaDiCaL. On a verified SAT result, inspect `optimality_witness.generator_matrix`, `minimum_distance`, and `weight_distribution`. An UNSAT result applies to the fixed base and extension length. A timeout leaves the probe unresolved. The GF(3) row requires its higher-distance UNSAT check for acceptance.
+
+`FAIL` exits nonzero. With `--require-pass`, `PARTIAL` also exits nonzero.
 
 Useful focused commands:
 

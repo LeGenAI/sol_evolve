@@ -2,7 +2,7 @@
 
 SolEvolve is a research codebase for LLM-guided, solver-verified combinatorial search. The current public artifact focuses on reproducible scaffolding for encoding selection, solver orchestration, verifier summaries, and Reflector-style feedback.
 
-The repository is aligned with the Neurocomputing revision framing: SolEvolve is not presented as a general mathematical discovery engine or as a replacement for SAT/ILP/Magma. It is a workflow for selected combinatorial search tasks where LLM-generated strategies are checked by deterministic solvers or verifiers.
+The manuscript is under review at *Neurocomputing*. A minor revision was requested in mid-2026.
 
 ## Install
 
@@ -57,21 +57,27 @@ CADICAL_PATH=/path/to/cadical
 
 ## Reviewer Reproduction
 
-The reviewer-facing command is:
+Run the seven core claims with CaDiCaL installed. This command exits successfully only on `PASS`.
 
 ```bash
 export CADICAL_PATH=/path/to/cadical
 solevolve-reviewer-reproduce \
   --paper-claim-id all_reviewer_core \
   --cadical-path "$CADICAL_PATH" \
-  --timeout 300
+  --timeout 300 --require-pass
 ```
 
 `--cadical-path` can be either a binary or a directory. If it is omitted, the resolver checks the repo-local `cadical/build/cadical` before common environment/default locations.
 
 It writes `artifacts/reviewer_reproduction/reviewer_reproduction_summary.json` and `artifacts/reviewer_reproduction/REPRODUCTION_REPORT.md`. The command verifies the public manifest, hashes the bundled reviewer artifact, queries codetables.de where applicable, and runs deterministic verifiers for the SO GF(k), Lucas-cube, and binary `A_d` claims.
 
-For strict acceptance of only fully bundled claims, use:
+The seven claims cover three self-orthogonal embeddings, three Lucas cubes, and one binary code weight-distribution progression. Run the archived Hybrid SAT-GA witness separately:
+
+```bash
+solevolve-reviewer-reproduce --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode archived --require-pass
+```
+
+To run individual core groups:
 
 ```bash
 solevolve-reviewer-reproduce --paper-claim-id binary_ad_43_10_16 --require-pass
@@ -81,7 +87,7 @@ solevolve-reviewer-reproduce --paper-claim-id all_so_table --cadical-path "$CADI
 
 `lucas_cubes` now verifies the bundled `Lambda_7(1^4)`, `Lambda_15(1^11)`, and `Lambda_15(1^12)` center sets directly from `artifacts/reviewer_core_claims.json`.
 
-See `docs/reviewer_reproduction.md` for the reviewer acceptance contract.
+The manuscript GF(5) matrix has minimum distance 8. The higher-distance check found a [self-orthogonal code of distance 9](artifacts/gf5_fixed_base_d9.json) with the same base. See the [verification instructions](docs/reviewer_reproduction.md).
 
 ## Supported Commands
 
@@ -92,7 +98,7 @@ solevolve-reviewer-reproduce --paper-claim-id all_so_table --cadical-path /path/
 solevolve-reviewer-reproduce --paper-claim-id lucas_cubes
 solevolve-reviewer-reproduce --paper-claim-id binary_ad_43_10_16 --require-pass
 solevolve-reviewer-reproduce --paper-claim-id binary_22_11_7_hybrid_ga --hybrid-ga-mode archived --require-pass
-solevolve-reviewer-reproduce --paper-claim-id all_reviewer_core --cadical-path /path/to/cadical
+solevolve-reviewer-reproduce --paper-claim-id all_reviewer_core --cadical-path /path/to/cadical --require-pass
 solevolve-reproduce-ternary-bch --cadical-path /path/to/cadical
 solevolve-reproduce-paper-claims --paper-claim-id ternary_bch_d9
 solevolve-demo --paper-claim-id ternary_bch_d9 --max-turns 4 "Goal: assess the ternary BCH d=9 table claim from deterministic SAT evidence."
@@ -126,10 +132,10 @@ Coordinator verdicts use these statuses:
 
 The public release scope is deliberately narrow:
 
-- included: package source, CLI entrypoints, docs, `artifacts/manifest.json`, `artifacts/reviewer_core_claims.json`, and `artifacts/reviewer_experiment_summaries.{json,csv}`
+- included: package source, CLI entrypoints, docs, `artifacts/manifest.json`, `artifacts/gf5_fixed_base_d9.json`, `artifacts/reviewer_core_claims.json`, and `artifacts/reviewer_experiment_summaries.{json,csv}`
 - excluded: tests, runtime reports, LangSmith exports, CNFs, solver models, generated NumPy files, private logs, and scratch experiment drivers
 
-Large CNF files, NumPy matrices, solver outputs, private raw console logs, runtime traces, test folders, and long-form exploratory drivers are intentionally excluded from the public artifact scope. The public bundle is intentionally small: `artifacts/manifest.json`, `artifacts/reviewer_core_claims.json`, and `artifacts/reviewer_experiment_summaries.{json,csv}`. The Lucas `n=15` center sets are bundled as compact bitstring lists inside `reviewer_core_claims.json`; the binary-code experiment summaries keep only hashes, counts, weight-distribution summaries, timing provenance, and the snapshot-dated Magma BKLC values used for manuscript comparisons. Raw SAT logs and NumPy copies remain excluded. Use `SOLEVOLVE_ARTIFACT_DIR` to point runtime commands to local or downloaded artifacts.
+Large CNF files, NumPy matrices, solver outputs, private raw console logs, runtime traces, test folders, and long-form exploratory drivers are intentionally excluded from the public artifact scope. The public bundle is intentionally small: `artifacts/manifest.json`, `artifacts/gf5_fixed_base_d9.json`, `artifacts/reviewer_core_claims.json`, and `artifacts/reviewer_experiment_summaries.{json,csv}`. The Lucas `n=15` center sets are bundled as compact bitstring lists inside `reviewer_core_claims.json`; the binary-code experiment summaries keep only hashes, counts, weight-distribution summaries, timing provenance, and the snapshot-dated Magma BKLC values used for manuscript comparisons. Raw SAT logs and NumPy copies remain excluded. Use `SOLEVOLVE_ARTIFACT_DIR` to point runtime commands to local or downloaded artifacts.
 
 Hybrid SAT-GA is opt-in in the LangGraph path. Reviewer-safe verification uses only the archived public witness:
 
@@ -213,15 +219,29 @@ solevolve-reviewer-reproduce --paper-claim-id binary_ad_43_10_16 --require-pass
 solevolve-reviewer-reproduce --paper-claim-id lucas_cubes
 ```
 
-The reviewer acceptance command remains `solevolve-reviewer-reproduce --paper-claim-id all_so_table --cadical-path /path/to/cadical --require-pass`.
+Use the commands in [Reviewer Reproduction](#reviewer-reproduction) for acceptance.
 
 ## Citation
 
+Journal manuscript under review:
+
 ```bibtex
-@article{solevolve2026,
-  title={{SolEvolve: LLM-Driven Evolutionary Search for SAT-Verified Constructions in Combinatorics}},
+@unpublished{kimBaekSolEvolve2026,
+  title={SolEvolve: LLM-Driven Evolutionary Search for SAT-Verified Constructions in Combinatorics},
   author={Kim, Jon-Lark and Baek, Jae-Hyun},
-  journal={Neurocomputing},
-  year={2026}
+  year={2026},
+  note={Under review at Neurocomputing}
+}
+```
+
+[Master’s thesis, Sogang University](https://dcollection.sogang.ac.kr/dcollection/srch/srchDetail/000000082888?localeParam=en):
+
+```bibtex
+@mastersthesis{baekSolEvolve2026,
+  title={SolEvolve: LLM-driven evolutionary search for SAT-verified constructions in discrete mathematics},
+  author={Baek, Jae-Hyun},
+  school={Sogang University},
+  year={2026},
+  url={https://dcollection.sogang.ac.kr/dcollection/srch/srchDetail/000000082888?localeParam=en}
 }
 ```

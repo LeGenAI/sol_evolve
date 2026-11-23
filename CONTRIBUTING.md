@@ -1,16 +1,13 @@
 # Contributing
 
-Contributions should preserve the public reproducibility contract:
+Keep the [reviewer commands](docs/reviewer_reproduction.md) and the checked artifacts in sync. Use the public CLI to verify changes to proof obligations, solver selection, or exit codes. Add regression checks for changes to these contracts.
 
-1. Keep `solevolve-reviewer-reproduce --paper-claim-id all_so_table` as the reviewer acceptance path.
-2. Do not commit `.env`, API keys, large CNF files, solver outputs, or generated NumPy matrices.
-3. Add or update focused tests for changes to contracts, tracing sanitization, solver path resolution, or proof logic.
-4. Keep README claims aligned with checked artifacts and the revised manuscript framing.
-
-Run before opening a pull request:
+Run the offline checks in a Python 3.12+ virtual environment:
 
 ```bash
-python -m pip install -e ".[dev]"
-python -m py_compile $(find src/solevolve -name '*.py')
-pytest
+python -m pip install -e .
+python -m compileall -q src/solevolve
+python scripts/check_reviewer_acceptance.py
 ```
+
+Use the full reviewer command with CaDiCaL for changes to the SAT encodings. Keep generated CNFs, solver logs, and API credentials outside the repository.

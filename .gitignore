@@ -24,6 +24,7 @@ cadical/
 artifacts/**
 !artifacts/
 !artifacts/manifest.json
+!artifacts/gf5_fixed_base_d9.json
 !artifacts/reviewer_core_claims.json
 !artifacts/reviewer_experiment_summaries.json
 !artifacts/reviewer_experiment_summaries.csv

@@ -74,6 +74,8 @@ def _claim_rows(claim_summary: dict[str, Any]) -> list[dict[str, Any]]:
         matrix = report.get("matrix_verification") or {}
         solver = report.get("solver") or {}
         optimality = report.get("optimality_solver") or {}
+        higher_check = next((item for item in report.get("proof_obligations", [])
+                             if item["name"] in {"higher_distance_probe", "optimality_no_larger_minimum_distance"}), {})
         diagnostics = report.get("diagnostics") or {}
         binary_solutions = report.get("solution_reports") or []
         binary_first = binary_solutions[0].get("diagnostics", {}) if binary_solutions else {}
@@ -114,6 +116,7 @@ def _claim_rows(claim_summary: dict[str, Any]) -> list[dict[str, Any]]:
                 "reduction_percent": report.get("reduction_percent"),
                 "solver_status": solver.get("status"),
                 "solver_elapsed_ms": solver.get("solver_elapsed_ms"),
+                "optimality_summary": higher_check.get("summary"),
                 "optimality_required": report.get("optimality_required"),
                 "optimality_status": optimality.get("status"),
                 "optimality_elapsed_ms": optimality.get("solver_elapsed_ms"),
@@ -276,6 +279,8 @@ def _write_markdown_report(path: Path, payload: dict[str, Any]) -> None:
             diagnostics.append(f"SAT={row.get('solver_status')}")
         if row.get("optimality_status"):
             diagnostics.append(f"d+1={row.get('optimality_status')}")
+        if row.get("optimality_summary"):
+            diagnostics.append(row["optimality_summary"])
         lines.append(
             f"| `{row.get('claim_id')}` | `{row.get('claim_family')}` | `{row.get('verdict')}` | `{row.get('parameters')}` | `{'; '.join(diagnostics)}` | `{', '.join(row.get('missing_obligations') or [])}` | `{row.get('report_path') or ''}` |"
         )
@@ -285,8 +290,8 @@ def _write_markdown_report(path: Path, payload: dict[str, Any]) -> None:
             "",
             "## Interpretation",
             "",
-            "- `PASS` means manifest files exist, required codetables lookups were live/cache-backed, and all selected claim obligations passed.",
-            "- `PARTIAL` means deterministic matrix checks may pass, but a solver, network lookup, or optional proof obligation was unavailable or timed out.",
+            "- `PASS` means manifest files exist, required codetables lookups were live/cache-backed, and all required claim obligations passed.",
+            "- `PARTIAL` means deterministic matrix checks may pass, but a solver, network lookup, or required proof obligation was unavailable or timed out.",
             "- `INSUFFICIENT_ARTIFACT` on a claim means the public release lacks the raw center/matrix artifact needed for a full proof.",
             "- `FAIL` means a required manifest or mathematical proof obligation contradicted the paper claim.",
             "",
@@ -499,7 +504,7 @@ def main() -> None:
                 sort_keys=True,
             )
         )
-        if args.require_pass and payload["verdict"] != "PASS":
+        if payload["verdict"] == "FAIL" or (args.require_pass and payload["verdict"] != "PASS"):
             raise SystemExit(1)
     finally:
         flush_tracing()

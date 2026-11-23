@@ -21,7 +21,6 @@ from .finite_fields import (
     field_conjugate,
     field_mul,
     gram_matrix,
-    minimum_distance,
     rank_field,
     weight_distribution,
 )
@@ -421,15 +420,15 @@ def run_so_claim_sat(cnf_path: str, cadical_path: str, timeout: int) -> dict[str
     return payload
 
 
-def _decode_extension_from_model(value_vars: dict[str, int], true_vars: list[int], *, rows: int, cols: int, q: int) -> np.ndarray:
+def _decode_extension_from_model(value_vars: dict[str, int], true_vars: list[int], *, rows: int, cols: int, q: int) -> np.ndarray | None:
     true_set = set(true_vars)
     extension = np.zeros((rows, cols), dtype=int)
     for row in range(rows):
         for col in range(cols):
-            for value in range(q):
-                if value_vars[f"{row},{col},{value}"] in true_set:
-                    extension[row, col] = value
-                    break
+            values = [v for v in range(q) if value_vars[f"{row},{col},{v}"] in true_set]
+            if len(values) != 1:
+                return None
+            extension[row, col] = values[0]
     return extension
 
 
@@ -439,30 +438,33 @@ def _drop_solver_model(payload: dict[str, Any]) -> dict[str, Any]:
     return compact
 
 
-def verify_claim_matrix(spec: ClaimSpec) -> dict[str, Any]:
+def verify_claim_matrix(spec: ClaimSpec, *, sat_target: int | None = None) -> dict[str, Any]:
     extended = spec.extended_matrix
     base_gram = gram_matrix(spec.base_matrix, spec.field_order, hermitian=spec.hermitian)
     extended_gram = gram_matrix(extended, spec.field_order, hermitian=spec.hermitian)
     distribution = weight_distribution(extended, spec.field_order)
-    d_min = minimum_distance(extended, spec.field_order)
+    d_min = min((weight for weight in distribution if weight > 0), default=None)
+    target = spec.d if sat_target is None else sat_target
+    meets_target = d_min is not None and d_min >= target
+    full_rank = distribution.get(0) == 1
+    self_orthogonal = bool(np.all(extended_gram == 0))
+    matches_reference = distribution == spec.expected_weight_distribution
     return {
         "claim_id": spec.claim_id,
         "field_order": spec.field_order,
         "inner_product": spec.inner_product,
         "source_parameters": [spec.start_n, spec.k],
         "extended_parameters": [spec.n_prime, spec.k],
-        "target_minimum_distance": spec.d,
+        "target_minimum_distance": target,
         "gram_rank": rank_field(base_gram, spec.field_order),
         "witness_t": spec.t,
-        "self_orthogonal": bool(np.all(extended_gram == 0)),
+        "self_orthogonal": self_orthogonal,
+        "full_rank": full_rank,
         "minimum_distance": d_min,
-        "meets_minimum_distance_target": d_min is not None and d_min >= spec.d,
+        "meets_minimum_distance_target": meets_target,
         "weight_distribution": distribution,
-        "matches_expected_weight_distribution": distribution == spec.expected_weight_distribution,
-        "matrix_ok": bool(np.all(extended_gram == 0))
-        and d_min is not None
-        and d_min >= spec.d
-        and distribution == spec.expected_weight_distribution,
+        "matches_expected_weight_distribution": matches_reference,
+        "matrix_ok": self_orthogonal and full_rank and meets_target and (sat_target is not None or matches_reference),
     }
 
 
@@ -470,6 +472,7 @@ def _decode_sat_witness(
     *,
     spec: ClaimSpec,
     solver_payload: dict[str, Any],
+    target: int,
     value_vars: dict[str, int],
 ) -> dict[str, Any] | None:
     if solver_payload.get("status") != "SAT" or not solver_payload.get("model_true_vars"):
@@ -481,9 +484,12 @@ def _decode_sat_witness(
         cols=spec.t,
         q=spec.field_order,
     )
+    if extension is None:
+        return None
     extended = np.hstack([spec.base_matrix, extension])
     witness_spec = spec.model_copy(update={"matrix": extended.tolist()})
-    payload = verify_claim_matrix(witness_spec)
+    payload = verify_claim_matrix(witness_spec, sat_target=target)
+    payload["generator_matrix"] = extended.tolist()
     payload["s_matrix"] = extension.tolist()
     return payload
 
@@ -515,7 +521,7 @@ def reproduce_paper_claim(
             "solver_path": None,
             "reason": "No executable CaDiCaL binary found.",
         }
-    sat_witness = _decode_sat_witness(spec=spec, solver_payload=solver_payload, value_vars=value_vars)
+    sat_witness = _decode_sat_witness(spec=spec, solver_payload=solver_payload, target=spec.d, value_vars=value_vars)
     solver = _drop_solver_model(solver_payload)
 
     optimality_cnf_info = None
@@ -533,48 +539,31 @@ def reproduce_paper_claim(
         optimality_witness = _decode_sat_witness(
             spec=spec,
             solver_payload=optimality_solver_payload,
+            target=optimality_target,
             value_vars=optimality_value_vars,
         )
         optimality_solver = _drop_solver_model(optimality_solver_payload)
 
-    matrix_ok = matrix_verification["matrix_ok"]
-    target_sat_ok = (
-        solver.get("status") == "SAT"
-        and sat_witness is not None
-        and sat_witness.get("self_orthogonal") is True
-        and (sat_witness.get("minimum_distance") or 0) >= spec.d
-    )
-    if spec.require_optimality_unsat:
-        optimality_ok = bool(optimality_solver and optimality_solver.get("status") == "UNSAT")
-    else:
-        optimality_ok = True
-    contradiction = solver.get("status") == "UNSAT" or (
-        spec.require_optimality_unsat and optimality_solver is not None and optimality_solver.get("status") == "SAT"
-    )
-
-    if matrix_ok and target_sat_ok and optimality_ok:
-        verdict = "PASS"
-    elif contradiction:
+    target_status = solver["status"]
+    target_sat_ok = bool(sat_witness and sat_witness["matrix_ok"])
+    higher_status = (optimality_solver or {}).get("status", "SKIPPED")
+    stronger_witness = bool(optimality_witness and optimality_witness["matrix_ok"])
+    required_bound_refuted = spec.require_optimality_unsat and higher_status == "SAT"
+    invalid_higher_model = higher_status == "SAT" and not stronger_witness
+    target_result = target_status
+    if target_status in {"SAT", "UNSAT"}:
+        target_result = "PASS" if target_sat_ok else "FAIL"
+    if not matrix_verification["matrix_ok"] or target_result == "FAIL" or required_bound_refuted or invalid_higher_model:
         verdict = "FAIL"
+    elif target_sat_ok and (not spec.require_optimality_unsat or higher_status == "UNSAT"):
+        verdict = "PASS"
     else:
         verdict = "PARTIAL"
-
-    if optimality_solver is None:
-        optional_status = "SKIPPED"
-    else:
-        optional_status = str(optimality_solver.get("status") or "UNKNOWN")
-
-    if optional_status == "UNSAT":
-        optional_obligation_status = "PASS"
-    elif spec.require_optimality_unsat:
-        optional_obligation_status = optional_status
-    else:
-        optional_obligation_status = "PARTIAL"
 
     proof_obligations = [
         {
             "name": "explicit_matrix_verification",
-            "status": "PASS" if matrix_ok else "FAIL",
+            "status": "PASS" if matrix_verification["matrix_ok"] else "FAIL",
             "method": f"GF({spec.field_order}) matrix verifier",
             "minimum_distance": matrix_verification["minimum_distance"],
             "self_orthogonal": matrix_verification["self_orthogonal"],
@@ -582,7 +571,7 @@ def reproduce_paper_claim(
         },
         {
             "name": "sat_feasibility_minimum_distance_target",
-            "status": "PASS" if target_sat_ok else solver.get("status", "UNKNOWN"),
+            "status": target_result,
             "method": "SAT(CaDiCaL)",
             "target_minimum_distance": spec.d,
             "solver_status": solver.get("status"),
@@ -590,17 +579,29 @@ def reproduce_paper_claim(
             "minimum_distance": sat_witness.get("minimum_distance") if sat_witness else None,
         },
     ]
-    if prove_optimality:
+    if prove_optimality or spec.require_optimality_unsat:
+        higher_result = "PARTIAL"
+        if higher_status == "UNSAT":
+            higher_result = "PASS"
+            summary = f"No fixed-base extension at t={spec.t} reaches distance {spec.d + 1} (UNSAT)."
+        elif higher_status == "SAT" and stronger_witness:
+            higher_result = "FAIL" if spec.require_optimality_unsat else "PASS"
+            summary = f"Verified a self-orthogonal [{spec.n_prime},{spec.k},{optimality_witness['minimum_distance']}] extension over GF({spec.field_order}). Its generator matrix is in optimality_witness.generator_matrix."
+        elif higher_status == "SAT":
+            higher_result = "FAIL"
+            summary = "The SAT model did not yield a verified higher-distance extension."
+        else:
+            summary = f"The higher-distance check is unresolved ({higher_status})."
         proof_obligations.append(
             {
-                "name": "optional_no_larger_minimum_distance" if not spec.require_optimality_unsat else "optimality_no_larger_minimum_distance",
+                "name": "higher_distance_probe" if not spec.require_optimality_unsat else "optimality_no_larger_minimum_distance",
                 "required": spec.require_optimality_unsat,
-                "status": optional_obligation_status,
+                "status": higher_result,
                 "method": "SAT(CaDiCaL)",
                 "target_minimum_distance": spec.d + 1,
-                "solver_status": optional_status,
+                "solver_status": higher_status,
                 "solver_elapsed_ms": (optimality_solver or {}).get("solver_elapsed_ms"),
-                "summary": f"UNSAT for d>={spec.d + 1} certifies no stronger fixed-base embedding at t={spec.t}.",
+                "summary": summary,
             }
         )
 
